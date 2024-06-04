@@ -1,0 +1,147 @@
+package projectprovider
+
+import (
+	"bytes"
+	"context"
+	"io"
+	"os"
+
+	"github.com/atoncetti/combiner/internal/logger"
+	"github.com/atoncetti/combiner/internal/service/project"
+	"github.com/mholt/archiver/v4"
+	"github.com/xanzy/go-gitlab"
+)
+
+type GitlabRepositoryProvider struct {
+	client   *gitlab.Client
+}
+
+func NewGitlabRepositoryProvider(baseUrl string, token string) (*GitlabRepositoryProvider, error) {
+	client, err := gitlab.NewClient(token, gitlab.WithBaseURL(baseUrl))
+	if err != nil {
+		logger.Logger.Error("Failed to create client.")
+
+		return nil, err
+	}
+
+	return &GitlabRepositoryProvider{client: client}, nil
+}
+
+func (p *GitlabRepositoryProvider) GetProject(projectID string) (*project.Project, error) {
+	archiveFormat := "tar.gz"
+	path := "./"
+
+	fileList := []*project.File{}
+
+	format := archiver.CompressedArchive{
+		Compression: archiver.Gz{},
+		Archival:    archiver.Tar{},
+	}
+
+	archiveResponse, _, err := p.client.Repositories.Archive(
+		projectID,
+		&gitlab.ArchiveOptions{Format: &archiveFormat, Path: &path},
+	)
+	if err != nil {
+		logger.Logger.Error("Failed to get repository archive.")
+		if gitlabErr, ok := err.(*gitlab.ErrorResponse); ok {
+			return nil, &project.RequestError{StatusCode: gitlabErr.Response.StatusCode, Message: gitlabErr.Message, Err: err}
+		}
+
+		return nil, err
+	}
+
+	handler := func(ctx context.Context, f archiver.File) error {
+		if f.IsDir() {
+			return nil
+		}
+
+		c, err := f.Open()
+		if err != nil {
+			return err
+		}
+		defer c.Close()
+
+		file := project.NewFile(
+			f.Name(),
+			make([]byte, f.Size()),
+		)
+
+		_, err = io.ReadFull(c, *file.GetContent())
+		if err != nil {
+			return err
+		}
+		fileList = append(fileList, file)
+
+		return nil
+	}
+
+	err = format.Extract(context.Background(), bytes.NewReader(archiveResponse), nil, handler)
+	if err != nil {
+		return nil, err
+	}
+	b1, err := os.ReadFile("../acrevis-expert/index.html")
+	fileList = append(fileList, project.NewFile("index.html", b1))
+	return project.NewProject(fileList), nil
+	// ref := "main"
+	// templateFileResponse, _, err := p.client.RepositoryFiles.GetFile(
+	// 	projectID,
+	// 	"index.html",
+	// 	&gitlab.GetFileOptions{
+	// 		Ref: &ref,
+	// 	},
+	// )
+	// if err != nil {
+	// 	logger.Logger.Error("Failed to get html template from the repository.")
+	// 	if gitlabErr, ok := err.(*gitlab.ErrorResponse); ok {
+	// 		return nil, &project.RequestError{StatusCode: gitlabErr.Response.StatusCode, Message: gitlabErr.Message, Err: err}
+	// 	}
+
+	// 	return nil, err
+	// }
+
+	// JSONschemaFileResponse, _, err := p.client.RepositoryFiles.GetFile(
+	// 	projectID,
+	// 	"schema.json",
+	// 	&gitlab.GetFileOptions{
+	// 		Ref: &ref,
+	// 	},
+	// )
+	// if err != nil {
+	// 	logger.Logger.Error("Failed to get json schema from the repository.")
+	// 	if gitlabErr, ok := err.(*gitlab.ErrorResponse); ok {
+	// 		if gitlabErr.Response.StatusCode != 404 {
+	// 			return nil, &project.RequestError{StatusCode: gitlabErr.Response.StatusCode, Message: gitlabErr.Message, Err: err}
+	// 		}
+	// 	}
+	// }
+
+	// template, err := base64.StdEncoding.DecodeString(templateFileResponse.Content)
+	// if err != nil {
+	// 	logger.Logger.Error("failed to base64 decode template.")
+	// 	return nil, err
+	// }
+
+	// var jsonSchema *[]byte
+
+	// if JSONschemaFileResponse != nil {
+	// 	decoded, err := base64.StdEncoding.DecodeString(JSONschemaFileResponse.Content)
+	// 	if err != nil {
+	// 		logger.Logger.Error("failed to base64 decode json schema.")
+	// 		return nil, err
+	// 	}
+
+	// 	jsonSchema = &decoded
+	// }
+
+	// var jsonSchemaFile *project.File = nil
+
+	// if jsonSchema != nil {
+	// 	jsonSchemaFile = project.NewFile("json_schema.json", *jsonSchema)
+	// }
+
+	// b1, err := os.ReadFile("../acrevis-expert/index.js")
+	// b2, err := os.ReadFile("../acrevis-expert/expert-online.jpg")
+	// b3, err := os.ReadFile("../acrevis-expert/barcode.jpg")
+	// []*project.File{project.NewFile("index.html", template), jsonSchemaFile, project.NewFile("index.js", b1), project.NewFile("expert-online.jpg", b2), project.NewFile("barcode.jpg", b3)}
+}

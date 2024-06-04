@@ -1,0 +1,11 @@
+package projectprovider
+
+type RequestError struct {
+	StatusCode int
+	Message    string
+	Err        error
+}
+
+func (r *RequestError) Error() string {
+	return r.Err.Error()
+}

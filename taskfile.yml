@@ -1,0 +1,90 @@
+version: "3"
+
+env:
+  ENV: development
+  BASE_PATH: 
+    sh: pwd
+  SERVER_GRAPHQL_PORT: '{{ env "SERVER_GRAPHQL_PORT" | default "4000" }}'
+  SERVER_GRAPHQL_WHITELIST_ORIGINS: '{{ env "SERVER_GRAPHQL_WHITELIST_ORIGINS" | default "http://localhost,http://localhost:8080,https://customerbook-frontend-development.acrevison.ch" }}'
+
+  GITLAB_URL: '{{ env "GITLAB_URL" | default "https://gitlab.com" }}'
+  GITLAB_TOKEN: '{{ env "GITLAB_TOKEN" | default "glpat-ybJyG6fw6f_gmsUY2QbE" }}'
+
+  PDF_GENERATOR_ENDPOINT: '{{ env "PDF_GENERATOR_ENDPOINT" | default "http://localhost:5000/forms/chromium/convert/html" }}'
+
+  CACHE_URL: '{{ env "CACHE_URL" | default "minio://testing?credential=hmac:0t1nP2rMFBTmz2kbpeOq:yU0JLU4wVrOjDsqCO8E8Mlw1tR0AYUBVtdkuWSZJ&endpoint=http:localhost:9000" }}'
+  # CACHE_URL: '{{ env "CACHE_URL" | default "fs:///home/antonio/projects/private/dokufy/combiner/test/cache" }}'
+
+dotenv: [".env", "{{.ENV}}/.env.", "{{.HOME}}/.env"]
+
+tasks:
+  install_global:
+    desc: install global (binary) dependencies
+    cmds:
+      - go install github.com/cosmtrek/air@latest
+      - go install mvdan.cc/gofumpt@latest
+      - go install github.com/daixiang0/gci@latest
+      - go install golang.org/x/tools/cmd/goimports@latest
+
+  setup:
+    desc: run setup (copy .env.dist file, get deps)
+    cmds:
+      - cp -n .env.dist .env
+      - go mod download
+
+  docker:
+    desc: run dependency services via Docker
+    cmds:
+      - docker-compose up
+      - defer: docker-compose stop
+
+  gen:
+    desc: generate code for graphql and database
+    cmds:
+      - go generate ./...
+      - task: format
+
+  format:
+    desc: runs all code quality tools
+    cmds:
+      - gofumpt -l -w .
+      - gci write --skip-generated -s standard -s default .
+      - goimports -w -l .
+
+  dev:
+    desc: run dev server in watch mode
+    cmds:
+      - air
+
+  bench:
+    desc: runs benchmarks
+    vars:
+      PATH: '{{ .CLI_ARGS | default "./cmd/bench" }}'
+    cmds:
+      - go test {{ .PATH }} -bench=. -run=xxx -benchmem
+
+  test:
+    desc: runs tests
+    vars:
+      PATH: '{{ .CLI_ARGS | default "./..." }}'
+    env:
+      CACHE_URL: "minio://testing?credential=hmac:0t1nP2rMFBTmz2kbpeOq:yU0JLU4wVrOjDsqCO8E8Mlw1tR0AYUBVtdkuWSZJ&endpoint=http:localhost:9000"
+    cmds:
+      - go test -v {{ .PATH }}
+
+  test:all:
+    desc: runs tests
+    cmds:
+      - task test:lint
+      - task test
+
+  test:lint:
+    desc: runs tests
+    cmds:
+      - golangci-lint run
+
+  build:
+    desc: build server
+    cmds:
+      - go build -o ./__bin__/ ./cmd/main.go
+      - rm -rf ./tmp

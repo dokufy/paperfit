@@ -1,0 +1,15 @@
+services:
+  gotemberg:
+    image: gotenberg/gotenberg:8
+    command: gotenberg --log-level=debug --api-timeout=300s
+    ports:
+      - "5000:3000"
+  minio:
+    image: quay.io/minio/minio
+    command: minio server /data --console-address ":9001"
+    ports:
+      - 9000:9000
+      - 9001:9001
+    environment:
+      - MINIO_ROOT_USER=root
+      - MINIO_ROOT_PASSWORD=12345678
