@@ -52,7 +52,7 @@ func (s *TestSuite) TestGeneratePDF_200() {
 // 	pdfServiceMock := new(mocks.PDFserviceMock)
 // 	project := mocks.ProjectMock("test")
 
-// 	multipart, _ := pdfprovider.MultipartForm(project.GetFiles(), &map[string]string{"arguments": "{\"title\": \"this is a title\"}"})
+// 	multipart, _ := pdfprovider.MultipartForm(project.GetFiles(), &map[string]string{"variables": "{\"title\": \"this is a title\"}"})
 
 // 	pdfServiceMock.On("Generate", mock.Anything).Return().Once()
 
@@ -73,7 +73,7 @@ func (s *TestSuite) TestGeneratePDF_200() {
 // 	pdfServiceMock := new(mocks.PDFserviceMock)
 // 	project := mocks.ProjectMock("test")
 
-// 	multipart, _ := pdfprovider.MultipartForm(project.GetFiles(), &map[string]string{"arguments": "bad arguments"})
+// 	multipart, _ := pdfprovider.MultipartForm(project.GetFiles(), &map[string]string{"variables": "bad variables"})
 
 // 	pdfServiceMock.On("Generate", mock.Anything).Return().Once()
 

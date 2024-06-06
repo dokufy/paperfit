@@ -1,3 +1,3 @@
 package service
 
-type ProjectServiceProvider interface{}
+type ProjectServiceProvider any

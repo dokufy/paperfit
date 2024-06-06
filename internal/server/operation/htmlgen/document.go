@@ -34,9 +34,9 @@ func definition(path string) huma.Operation {
 							"template": {
 								Type: huma.TypeString,
 							},
-							"arguments": {
+							"variables": {
 								Type:        huma.TypeString,
-								Description: "Input arguments that will be replaced in the document",
+								Description: "Input variables that will be replaced in the document",
 							},
 						},
 						Required: []string{"template"},
@@ -110,17 +110,15 @@ func resolver(pdfService service.PDFserviceProvider) func(ctx context.Context, i
 			}
 		}
 
-		if input.RawBody.Value["arguments"] != nil && input.RawBody.Value["arguments"][0] != "" {
-			var parsedArgs map[string]interface{}
-			err := json.Unmarshal([]byte(input.RawBody.Value["arguments"][0]), &parsedArgs)
+		vars := input.RawBody.Value["variables"]
+		if vars != nil && vars[0] != "" {
+			var parsedArgs map[string]any
+			err := json.Unmarshal([]byte(input.RawBody.Value["variables"][0]), &parsedArgs)
 			if err != nil {
-				// logger.Logger.Error("failed to parse arguments.")
-				return nil, huma.Error400BadRequest("Failed to parse arguments", err)
+				return nil, huma.Error400BadRequest("Failed to parse variables", err)
 			}
 
-			if input.RawBody.Value["arguments"][0] != "" {
-				pr.AppendArgumentsFile(input.RawBody.Value["arguments"][0])
-			}
+			pr.AppendVariables(vars[0])
 		}
 
 		res, err := pdfService.Generate(&pr)

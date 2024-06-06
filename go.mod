@@ -1,6 +1,6 @@
 module github.com/atoncetti/combiner
 
-go 1.22.2
+go 1.22.3
 
 require (
 	github.com/danielgtaylor/huma/v2 v2.16.0

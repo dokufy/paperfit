@@ -2,9 +2,14 @@ package service
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"slices"
+
+	"golang.org/x/net/html"
 )
+
+var ErrIndexFileMissing = errors.New("index.html is required")
 
 type Project struct {
 	files []*File
@@ -16,7 +21,7 @@ func NewProject(files []*File) Project {
 	}
 }
 
-func (p *Project) GetTemplate() *File {
+func (p *Project) GetIndex() *File {
 	index := slices.IndexFunc(p.files, func(f *File) bool { return f.Name() == "index.html" })
 
 	if index == -1 {
@@ -47,14 +52,71 @@ func (p *Project) AppendFile(name string, content io.Reader, size int64) error {
 	return nil
 }
 
-func (p *Project) AppendArgumentsFile(arguments string) error {
-	content := []byte("window.test = " + arguments + ";\n")
-	size := int64(len(content))
-	file := NewFile("arguments.js", bytes.NewReader(content), size)
+func (p *Project) AppendVariables(JSONvariables string) error {
+	index := p.GetIndex()
 
-	p.AppendFiles(&file)
+	if index == nil {
+		return ErrIndexFileMissing
+	}
+
+	doc, err := html.Parse(index.Content)
+	if err != nil {
+		return err
+	}
+
+	script := buildJSscript(JSONvariables)
+	appendScriptToHead(doc, script)
+
+	modifiedIndex, err := renderHTML(doc)
+	if err != nil {
+		return err
+	}
+
+	index.Content = modifiedIndex
 
 	return nil
+}
+
+func buildJSscript(JSONvariables string) string {
+	return "window.dokufy=" + JSONvariables + ";"
+}
+
+func appendScriptToHead(doc *html.Node, script string) {
+	scriptNode := &html.Node{
+		Type: html.ElementNode,
+		Data: "script",
+	}
+
+	scriptText := &html.Node{
+		Type: html.TextNode,
+		Data: script,
+	}
+
+	scriptNode.AppendChild(scriptText)
+
+	var traverse func(*html.Node)
+
+	traverse = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "head" {
+			n.AppendChild(scriptNode)
+			return
+		}
+
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			traverse(c)
+		}
+	}
+
+	traverse(doc)
+}
+
+func renderHTML(doc *html.Node) (io.Reader, error) {
+	var buf bytes.Buffer
+	if err := html.Render(&buf, doc); err != nil {
+		return nil, err
+	}
+
+	return &buf, nil
 }
 
 func (p *Project) AppendFiles(files ...*File) {

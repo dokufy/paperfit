@@ -54,14 +54,14 @@ func definition(api huma.API, path string, cacher *cacher.Cacher) huma.Operation
 								Type:        huma.TypeObject,
 								Description: "Input argument options",
 								Properties: map[string]*huma.Schema{
-									"arguments": {
+									"variables": {
 										Type:        huma.TypeString,
-										Description: "Input arguments that will be replaced in the document",
+										Description: "Input variables that will be replaced in the document",
 										WriteOnly:   true,
 									},
 									"validate": {
 										Type:        huma.TypeBoolean,
-										Description: "Whether to validate the arguments against a json schema or not",
+										Description: "Whether to validate the variables against a json schema or not",
 										WriteOnly:   true,
 									},
 								},
@@ -119,7 +119,7 @@ func resolver(
 			return nil, huma.Error400BadRequest("No url provided")
 		}
 
-		pdfCacheKey, err := cacher.Key([][]byte{[]byte(input.Body.URL), httptool.FlattenHeaders(input.Body.Headers), []byte(input.Body.Input.Arguments)})
+		pdfCacheKey, err := cacher.Key([][]byte{[]byte(input.Body.URL), httptool.FlattenHeaders(input.Body.Headers), []byte(input.Body.Input.Variables)})
 		if err != nil {
 			return nil, huma.Error500InternalServerError("Failed to create cache key")
 		}
@@ -158,30 +158,30 @@ func resolver(
 			jsonSchema := pr.GetJSONschema()
 
 			if jsonSchema == nil {
-				return nil, huma.Error404NotFound("No json schema found in the archive, please check that a json schema exists in the archive or disable arguments validation")
+				return nil, huma.Error404NotFound("No json schema found in the archive, please check that a json schema exists in the archive or disable variables validation")
 			}
 
-			err := validation.Validate(strings.NewReader(input.Body.Input.Arguments), jsonSchema.Content)
+			err := validation.Validate(strings.NewReader(input.Body.Input.Variables), jsonSchema.Content)
 			if err != nil {
-				return nil, huma.Error400BadRequest("Provided arguments do not conform to the json schema")
+				return nil, huma.Error400BadRequest("Provided variables do not conform to the json schema")
 			}
 		}
 
-		if input.Body.Input.Arguments != "" {
-			var parsedArgs map[string]interface{}
-			err = json.Unmarshal([]byte(input.Body.Input.Arguments), &parsedArgs)
+		variables := input.Body.Input.Variables
+		if variables != "" {
+			var parsedVars map[string]any
+			err = json.Unmarshal([]byte(variables), &parsedVars)
 			if err != nil {
-				return nil, huma.Error500InternalServerError("Failed to parse arguments", err)
+				return nil, huma.Error500InternalServerError("Failed to parse variables", err)
 			}
 
-			pr.AppendArgumentsFile(input.Body.Input.Arguments)
+			pr.AppendVariables(variables)
 		}
 
 		res, err := pdfService.Generate(&pr)
 		if err != nil {
 			if cache != nil {
-				err2 := cache.DeleteArchive(ctx, archiveCacheKey)
-				if err2 != nil {
+				if err2 := cache.DeleteArchive(ctx, archiveCacheKey); err2 != nil {
 					return nil, huma.Error500InternalServerError("Failed to cleanup archive", err2)
 				}
 			}

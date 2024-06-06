@@ -161,7 +161,7 @@ func (s *TestSuite) Test_Success_Generate_PDF_With_Cache_Returns_200() {
 // 			map[string]any{
 // 				"url": "existing_template_existing_schema",
 // 				"argumentOptions": map[string]any{
-// 					"arguments": "{\"title\": \"this is a title\"}",
+// 					"variables": "{\"title\": \"this is a title\"}",
 // 					"validate":  true,
 // 				},
 // 			},
@@ -174,7 +174,7 @@ func (s *TestSuite) Test_Success_Generate_PDF_With_Cache_Returns_200() {
 // 			map[string]any{
 // 				"url": "existing_template_existing_schema",
 // 				"argumentOptions": map[string]any{
-// 					"arguments": "{\"title\": \"this is a title\"}",
+// 					"variables": "{\"title\": \"this is a title\"}",
 // 					"validate":  true,
 // 				},
 // 			},
@@ -202,7 +202,7 @@ func (s *TestSuite) Test_Success_Generate_PDF_With_Cache_Returns_200() {
 // 		map[string]any{
 // 			"url": "existing_template_existing_schema",
 // 			"argumentOptions": map[string]any{
-// 				"arguments": "{\"title\": \"this is a title\"}",
+// 				"variables": "{\"title\": \"this is a title\"}",
 // 				"validate":  true,
 // 			},
 // 		},
@@ -215,7 +215,7 @@ func (s *TestSuite) Test_Success_Generate_PDF_With_Cache_Returns_200() {
 // 		map[string]any{
 // 			"url": "existing_template_existing_schema",
 // 			"argumentOptions": map[string]any{
-// 				"arguments": "{\"title\": \"this is a title\"}",
+// 				"variables": "{\"title\": \"this is a title\"}",
 // 				"validate":  true,
 // 			},
 // 		},
@@ -241,7 +241,7 @@ func (s *TestSuite) Test_Success_Generate_PDF_With_Cache_Returns_200() {
 // 	resp1 := s.api.Post("/pdf/generate/archive", map[string]any{
 // 		"url": "existing_template_existing_empty_schema",
 // 		"input": map[string]any{
-// 			"arguments": "{\"test\": \"some_value\"}",
+// 			"variables": "{\"test\": \"some_value\"}",
 // 			"validate":  true,
 // 		},
 // 	})
@@ -251,7 +251,7 @@ func (s *TestSuite) Test_Success_Generate_PDF_With_Cache_Returns_200() {
 // 	resp2 := s.api.Post("/pdf/generate/archive", map[string]any{
 // 		"url": "existing_template_existing_empty_schema",
 // 		"input": map[string]any{
-// 			"arguments": "{\"test\": \"some_value\"}",
+// 			"variables": "{\"test\": \"some_value\"}",
 // 			"validate":  true,
 // 		},
 // 	})
@@ -276,7 +276,7 @@ func (s *TestSuite) Test_Success_Generate_PDF_With_Cache_Returns_200() {
 // 	resp1 := s.api.Post("/pdf/generate/archive", map[string]any{
 // 		"url": "existing_template_existing_empty_schema",
 // 		"input": map[string]any{
-// 			"arguments": "{\"test\": \"some_value\"}",
+// 			"variables": "{\"test\": \"some_value\"}",
 // 			"validate":  true,
 // 		},
 // 	})
@@ -286,7 +286,7 @@ func (s *TestSuite) Test_Success_Generate_PDF_With_Cache_Returns_200() {
 // 	resp2 := s.api.Post("/pdf/generate/archive", map[string]any{
 // 		"url": "existing_template_existing_empty_schema",
 // 		"input": map[string]any{
-// 			"arguments": "{\"test\": \"some_value\"}",
+// 			"variables": "{\"test\": \"some_value\"}",
 // 			"validate":  true,
 // 		},
 // 	})
@@ -345,7 +345,7 @@ func (s *TestSuite) Test_Success_Generate_PDF_With_Cache_Returns_200() {
 // 	resp := s.api.Post("/pdf/generate/archive", map[string]any{
 // 		"url": "existing_template_non_existing_schema",
 // 		"input": map[string]any{
-// 			"arguments": "{\"test\": \"some_value\"}",
+// 			"variables": "{\"test\": \"some_value\"}",
 // 			"validate":  true,
 // 		},
 // 	})
@@ -367,7 +367,7 @@ func (s *TestSuite) Test_Success_Generate_PDF_With_Cache_Returns_200() {
 // 	resp := s.api.Post("/pdf/generate/archive", map[string]any{
 // 		"url": "existing_template_existing_schema",
 // 		"input": map[string]any{
-// 			"arguments": "{\"test\": \"some_value\"}",
+// 			"variables": "{\"test\": \"some_value\"}",
 // 			"validate":  true,
 // 		},
 // 	})

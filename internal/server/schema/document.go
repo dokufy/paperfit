@@ -4,7 +4,7 @@ import "mime/multipart"
 
 type Input struct {
 	Validate  bool
-	Arguments string
+	Variables string
 }
 
 type DocumentInput struct {
