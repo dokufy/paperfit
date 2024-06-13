@@ -10,7 +10,7 @@ type PDFserviceMock struct {
 }
 
 func (m *PDFserviceMock) Generate(project *service.Project) ([]byte, error) {
-	m.Called(project.GetFiles())
+	m.Called(project)
 
 	return []byte("Ok, PDF returned"), nil
 }

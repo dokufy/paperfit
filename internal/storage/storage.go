@@ -17,18 +17,18 @@ import (
 
 type Storage struct {
 	store  types.Storager
-	logger *logger.Logger
+	logger logger.Logger
 }
 
-type StorageConfiguration func(storage *Storage) error
+type StorageOption func(storage *Storage) error
 
-func New(url string, configs ...StorageConfiguration) (*Storage, error) {
+func New(url string, configs ...StorageOption) (*Storage, error) {
 	store, err := services.NewStoragerFromString(url)
 	if err != nil {
 		return nil, err
 	}
 
-	storage := &Storage{store: store}
+	storage := &Storage{store: store, logger: logger.New()}
 
 	for _, cfg := range configs {
 		err := cfg(storage)
@@ -40,9 +40,9 @@ func New(url string, configs ...StorageConfiguration) (*Storage, error) {
 	return storage, nil
 }
 
-func WithLogger(logger logger.Logger) StorageConfiguration {
+func WithLogger(logger logger.Logger) StorageOption {
 	return func(storage *Storage) error {
-		storage.logger = &logger
+		storage.logger = logger
 
 		return nil
 	}

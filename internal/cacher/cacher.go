@@ -9,28 +9,64 @@ import (
 	"path/filepath"
 
 	"github.com/atoncetti/combiner/internal/cache"
+	"github.com/atoncetti/combiner/internal/crypter"
 	"github.com/atoncetti/combiner/internal/logger"
 	"github.com/atoncetti/combiner/internal/storage"
 	"github.com/eko/gocache/lib/v4/store"
 )
 
 type Cacher struct {
-	cache *cache.Cache
+	cache         *cache.Cache
+	encryptionKey *string
+	logger        *logger.Logger
 }
 
-func New(dsn *string, logger logger.Logger) (Cacher, error) {
-	if dsn == nil {
-		return Cacher{}, nil
+type CacherOptions func(cacher *Cacher) error
+
+func New(dsn string, options ...CacherOptions) (*Cacher, error) {
+	cacher := &Cacher{}
+
+	if options != nil {
+		for _, cfg := range options {
+			if cfg != nil {
+				err := cfg(cacher)
+				if err != nil {
+					return &Cacher{}, err
+				}
+			}
+		}
 	}
 
-	storage, err := storage.New(*dsn, storage.WithLogger(logger))
+	storageOpts := []storage.StorageOption{}
+
+	if cacher.logger != nil {
+		storageOpts = append(storageOpts, storage.WithLogger(*cacher.logger))
+	}
+
+	storage, err := storage.New(dsn, storageOpts...)
 	if err != nil {
-		logger.Error("Failed to create storage", err)
-
-		return Cacher{}, err
+		return nil, err
 	}
 
-	return Cacher{cache: cache.New(storage)}, nil
+	cacher.cache = cache.New(storage)
+
+	return cacher, nil
+}
+
+func WithEncryption(key string) CacherOptions {
+	return func(cacher *Cacher) error {
+		cacher.encryptionKey = &key
+
+		return nil
+	}
+}
+
+func WithLogger(logger *logger.Logger) CacherOptions {
+	return func(cacher *Cacher) error {
+		cacher.logger = logger
+
+		return nil
+	}
 }
 
 func (r *Cacher) GetArchive(ctx context.Context, key string) (io.Reader, error) {
@@ -83,13 +119,33 @@ func get(ctx context.Context, cacher *Cacher, key string, basePath string) (io.R
 		return nil, nil
 	}
 
+	if cacher.encryptionKey != nil {
+		r, err := crypter.DecryptingReader(*cacher.encryptionKey, pdf.(io.Reader))
+		if err != nil {
+			return nil, err
+		}
+
+		return r, nil
+	}
+
 	return pdf.(io.Reader), nil
 }
 
 func set(ctx context.Context, cacher *Cacher, key string, pdf io.Reader, size int64, basePath string) error {
 	path := filepath.Join(basePath, key)
 
-	err := cacher.cache.Set(ctx, path, pdf, store.WithCost(size))
+	reader := pdf
+
+	if cacher.encryptionKey != nil {
+		r, err := crypter.EncryptingReader(*cacher.encryptionKey, pdf)
+		if err != nil {
+			return err
+		}
+
+		reader = r
+	}
+
+	err := cacher.cache.Set(ctx, path, reader, store.WithCost(size))
 	if err != nil {
 		return err
 	}

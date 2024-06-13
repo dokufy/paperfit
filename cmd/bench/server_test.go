@@ -15,13 +15,13 @@ import (
 
 func setupApi(b *testing.B) humatest.TestAPI {
 	logger := logger.New()
-	cacher, err := cacher.New(config.AppConfig.CacheUrl, logger)
+	cacher, err := cacher.New(config.Config.CacheConfig.CacheUrl, nil)
 	if err != nil {
 		b.Fatal("failed to create cache")
 	}
 
 	_, api := humatest.New(b)
-	server.AddRoutes(api, nil, &cacher, &logger)
+	server.AddRoutes(api, nil, cacher, &logger)
 
 	return api
 }

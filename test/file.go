@@ -23,5 +23,5 @@ func File(relPath string) (io.Reader, int64) {
 func FilePath(relPath string) string {
 	config.Load()
 
-	return filepath.Join(config.AppConfig.BasePath, "test/files", relPath)
+	return filepath.Join(config.Config.BasePath, "test/files", relPath)
 }

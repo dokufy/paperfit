@@ -5,26 +5,41 @@ import (
 	"os"
 )
 
-type Config struct {
+type EnvConfig struct {
 	BasePath string
 
-	ServerGraphqlPort             string
-	ServerGraphqlWhitelistOrigins string
+	ServerRESTPort string
 
 	PDFgeneratorEndpoint string
 
-	CacheUrl *string
+	CacheConfig *CacheConfig
 }
 
-var AppConfig Config
+var Config EnvConfig
+
+type CacheConfig struct {
+	CacheUrl      string
+	EncryptionKey *string
+}
 
 func Load() {
-	AppConfig = Config{
-		BasePath:                      FetchEnv("BASE_PATH"),
-		ServerGraphqlPort:             FetchEnv("SERVER_GRAPHQL_PORT"),
-		ServerGraphqlWhitelistOrigins: FetchEnv("SERVER_GRAPHQL_WHITELIST_ORIGINS"),
-		PDFgeneratorEndpoint:          FetchEnv("PDF_GENERATOR_ENDPOINT"),
-		CacheUrl:                      GetEnv("CACHE_URL", nil),
+	Config = EnvConfig{
+		BasePath:             FetchEnv("BASE_PATH"),
+		ServerRESTPort:       FetchEnv("SERVER_REST_PORT"),
+		PDFgeneratorEndpoint: FetchEnv("PDF_GENERATOR_ENDPOINT"),
+		CacheConfig:          CreateCacheConfig(),
+	}
+}
+
+func CreateCacheConfig() *CacheConfig {
+	cacheUrl := GetEnv("CACHE_URL", nil)
+	if cacheUrl == nil {
+		return nil
+	}
+
+	return &CacheConfig{
+		CacheUrl:      *cacheUrl,
+		EncryptionKey: GetEnv("CACHE_ENCRYPTION_KEY", nil),
 	}
 }
 

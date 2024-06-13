@@ -4,8 +4,7 @@ env:
   ENV: development
   BASE_PATH: 
     sh: pwd
-  SERVER_GRAPHQL_PORT: '{{ env "SERVER_GRAPHQL_PORT" | default "4000" }}'
-  SERVER_GRAPHQL_WHITELIST_ORIGINS: '{{ env "SERVER_GRAPHQL_WHITELIST_ORIGINS" | default "http://localhost,http://localhost:8080,https://customerbook-frontend-development.acrevison.ch" }}'
+  SERVER_REST_PORT: '{{ env "SERVER_REST_PORT" | default "4000" }}'
 
   GITLAB_URL: '{{ env "GITLAB_URL" | default "https://gitlab.com" }}'
   GITLAB_TOKEN: '{{ env "GITLAB_TOKEN" | default "glpat-ybJyG6fw6f_gmsUY2QbE" }}'
@@ -13,7 +12,7 @@ env:
   PDF_GENERATOR_ENDPOINT: '{{ env "PDF_GENERATOR_ENDPOINT" | default "http://localhost:5000/forms/chromium/convert/html" }}'
 
   CACHE_URL: '{{ env "CACHE_URL" | default "minio://testing?credential=hmac:0t1nP2rMFBTmz2kbpeOq:yU0JLU4wVrOjDsqCO8E8Mlw1tR0AYUBVtdkuWSZJ&endpoint=http:localhost:9000" }}'
-  # CACHE_URL: '{{ env "CACHE_URL" | default "fs:///home/antonio/projects/private/dokufy/combiner/test/cache" }}'
+  CACHE_ENCRYPTION_KEY: '{{ env "CACHE_ENCRYPTION_KEY" | default "NamGxa5cJVKvd+lXyJtG0UUgsGd7euwHnhDD8SW/1hOAWr6DWeS0w26myN5Thl+U" }}'
 
 dotenv: [".env", "{{.ENV}}/.env.", "{{.HOME}}/.env"]
 

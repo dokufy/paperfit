@@ -20,14 +20,14 @@ type TestSuite struct {
 	ctx    context.Context
 	assert *assert.Assertions
 	api    humatest.TestAPI
-	cacher cacher.Cacher
+	cacher *cacher.Cacher
 	logger logger.Logger
 }
 
 func (s *TestSuite) SetupSuite() {
 	config.Load()
 	logger := logger.New()
-	cacher, err := cacher.New(config.AppConfig.CacheUrl, logger)
+	cacher, err := cacher.New(config.Config.CacheConfig.CacheUrl, nil)
 	if err != nil {
 		s.T().Fatal("failed to create cache")
 	}
@@ -40,9 +40,9 @@ func (s *TestSuite) SetupSuite() {
 func setupApiWithCache(s *TestSuite) {
 	_, api := humatest.New(s.T())
 
-	httpPDFprovider := pdfprovider.NewHTTPpdfProvider(config.AppConfig.PDFgeneratorEndpoint)
+	httpPDFprovider := pdfprovider.NewHTTPpdfProvider(config.Config.PDFgeneratorEndpoint)
 
-	addRoutes(api, httpPDFprovider, &s.cacher, &s.logger)
+	addRoutes(api, httpPDFprovider, s.cacher, &s.logger)
 
 	s.api = api
 }
@@ -50,7 +50,7 @@ func setupApiWithCache(s *TestSuite) {
 func setupApiWithoutCache(s *TestSuite) {
 	_, api := humatest.New(s.T())
 
-	httpPDFprovider := pdfprovider.NewHTTPpdfProvider(config.AppConfig.PDFgeneratorEndpoint)
+	httpPDFprovider := pdfprovider.NewHTTPpdfProvider(config.Config.PDFgeneratorEndpoint)
 
 	addRoutes(api, httpPDFprovider, nil, &s.logger)
 

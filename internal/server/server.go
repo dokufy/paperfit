@@ -16,25 +16,38 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func New() {
+func New(port string) {
 	config.Load()
 
 	logger := logger.New()
 
-	httpPDFprovider := pdfprovider.NewHTTPpdfProvider(config.AppConfig.PDFgeneratorEndpoint)
+	httpPDFprovider := pdfprovider.NewHTTPpdfProvider(config.Config.PDFgeneratorEndpoint)
 
-	cacher, err := cacher.New(config.AppConfig.CacheUrl, logger)
-	if err != nil {
-		logger.Error("Failed to create cacher", err)
-		panic("failed to create cacher")
+	var c *cacher.Cacher
+	if config.Config.CacheConfig != nil {
+		opts := []cacher.CacherOptions{cacher.WithLogger(&logger)}
+
+		if config.Config.CacheConfig.EncryptionKey != nil {
+			opts = append(opts, cacher.WithEncryption(*config.Config.CacheConfig.EncryptionKey))
+		}
+
+		cacher, err := cacher.New(config.Config.CacheConfig.CacheUrl, opts...)
+		if err != nil {
+			logger.Error("Failed to create cacher", err)
+			panic("failed to create cacher")
+		}
+
+		c = cacher
 	}
 
 	router := chi.NewMux()
-	api := humachi.New(router, huma.DefaultConfig("pdfuse API", "1.0.0"))
+	api := humachi.New(router, huma.DefaultConfig("docfusion API", "0.1.0"))
 
-	AddRoutes(api, httpPDFprovider, &cacher, &logger)
+	AddRoutes(api, httpPDFprovider, c, &logger)
 
-	http.ListenAndServe(":8888", router)
+	if err := http.ListenAndServe("localhost:"+port, router); err != nil {
+		panic("failed to start server")
+	}
 }
 
 func AddRoutes(api huma.API, pdfService service.PDFserviceProvider, cacher *cacher.Cacher, logger *logger.Logger) {

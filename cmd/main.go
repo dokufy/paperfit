@@ -8,5 +8,5 @@ import (
 func main() {
 	config.Load()
 
-	server.New()
+	server.New(config.Config.ServerRESTPort)
 }

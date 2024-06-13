@@ -35,7 +35,7 @@ func RemoveMockedRequests() {
 func NoMockPDFgenerator() {
 	config.Load()
 
-	gock.New(config.AppConfig.PDFgeneratorEndpoint).
+	gock.New(config.Config.PDFgeneratorEndpoint).
 		Post("/").
 		Persist().
 		EnableNetworking()
