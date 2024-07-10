@@ -3,52 +3,40 @@ package archivegen
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
+	"mime/multipart"
 	"net/http"
+	"strconv"
 	"strings"
 
-	"github.com/atoncetti/combiner/internal/cacher"
-	"github.com/atoncetti/combiner/internal/httptool"
-	"github.com/atoncetti/combiner/internal/server/middleware"
+	"github.com/atoncetti/combiner/internal/archive"
+	"github.com/atoncetti/combiner/internal/cache"
 	"github.com/atoncetti/combiner/internal/server/schema"
 	"github.com/atoncetti/combiner/internal/service"
-	"github.com/atoncetti/combiner/internal/service/projectprovider"
 	"github.com/atoncetti/combiner/validation"
 	"github.com/danielgtaylor/huma/v2"
 )
 
-func RegisterOperation(api huma.API, path string, archiveProjectProvider projectprovider.ArchiveProjectServiceProvider, pdfService service.PDFserviceProvider, cacher *cacher.Cacher) {
-	huma.Register(api, definition(api, path, cacher), resolver(archiveProjectProvider, pdfService, cacher))
+func RegisterOperation(api huma.API, path string, pdfService service.PDFserviceGenerator, cacheInstance *cache.Cache) {
+	huma.Register(api, definition(path), resolver(pdfService, cacheInstance))
 }
 
-func definition(api huma.API, path string, cacher *cacher.Cacher) huma.Operation {
+func definition(path string) huma.Operation {
 	return huma.Operation{
 		OperationID: "generate-pdf-archive",
 		Method:      http.MethodPost,
 		Path:        path,
-		Middlewares: huma.Middlewares{middleware.GetPdfCacheResponseMiddleware(api, cacher)},
-		Summary:     "Generates a PDF document from given archive",
-		Tags:        []string{"Generate from archive"},
+		Summary:     "Generate PDF from archive",
 		RequestBody: &huma.RequestBody{
 			Description: "Input for document generation",
 			Required:    true,
 			Content: map[string]*huma.MediaType{
-				"application/json": {
+				"multipart/form-data": {
 					Schema: &huma.Schema{
 						Type: huma.TypeObject,
 						Properties: map[string]*huma.Schema{
-							"url": {
-								Type:        huma.TypeString,
-								Description: "Url of the archive",
-								WriteOnly:   true,
-								Format:      "uri",
-							},
-							"headers": {
-								Type:        huma.TypeObject,
-								Description: "Headers to use when making a request to the specified Url",
-								Properties:  map[string]*huma.Schema{},
-								WriteOnly:   true,
+							"template": {
+								Type: huma.TypeString,
 							},
 							"input": {
 								Type:        huma.TypeObject,
@@ -67,7 +55,7 @@ func definition(api huma.API, path string, cacher *cacher.Cacher) huma.Operation
 								},
 							},
 						},
-						Required: []string{"url"},
+						Required: []string{"template"},
 					},
 				},
 			},
@@ -110,27 +98,47 @@ func definition(api huma.API, path string, cacher *cacher.Cacher) huma.Operation
 }
 
 func resolver(
-	archiveProjectProvider projectprovider.ArchiveProjectServiceProvider,
-	pdfService service.PDFserviceProvider,
-	cache *cacher.Cacher,
+	pdfService service.PDFserviceGenerator,
+	cacheInstance *cache.Cache,
 ) func(ctx context.Context, input *schema.DocumentArchiveInput) (*huma.StreamResponse, error) {
 	return func(ctx context.Context, input *schema.DocumentArchiveInput) (*huma.StreamResponse, error) {
-		if input.Body.URL == "" {
-			return nil, huma.Error400BadRequest("No url provided")
+		if len(input.RawBody.File) == 0 {
+			return nil, huma.Error400BadRequest("an archive must be provided")
 		}
 
-		pdfCacheKey, err := cacher.Key([][]byte{[]byte(input.Body.URL), httptool.FlattenHeaders(input.Body.Headers), []byte(input.Body.Input.Variables)})
+		var vars string = ""
+		var validate bool = false
+
+		project, archiveName, err := archiveToProject(ctx, input.RawBody.File)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed while extracting archive", err)
+		}
+
+		if len(input.RawBody.Value["variables"]) > 0 {
+			vars = input.RawBody.Value["variables"][0]
+		}
+
+		if len(input.RawBody.Value["validate"]) > 0 {
+			val, err := strconv.ParseBool(input.RawBody.Value["validate"][0])
+			if err != nil {
+				return nil, huma.Error400BadRequest("unknown value passed as validate", err)
+			}
+
+			validate = val
+		}
+
+		pdfCacheKey, err := cache.Key([][]byte{[]byte(archiveName), []byte(vars)})
 		if err != nil {
 			return nil, huma.Error500InternalServerError("Failed to create cache key")
 		}
 
-		archiveCacheKey, err := cacher.Key([][]byte{[]byte(input.Body.URL), httptool.FlattenHeaders(input.Body.Headers)})
+		archiveCacheKey, err := cache.Key([][]byte{[]byte(archiveName)})
 		if err != nil {
 			return nil, huma.Error500InternalServerError("Failed to create cache key")
 		}
 
-		if cache != nil {
-			cachedPdf, err := cache.GetPDF(ctx, pdfCacheKey)
+		if cacheInstance != nil {
+			cachedPdf, err := cacheInstance.GetPDF(ctx, pdfCacheKey)
 			if err != nil {
 				return nil, huma.Error500InternalServerError("Failed to read cache", err)
 			}
@@ -143,45 +151,30 @@ func resolver(
 			}
 		}
 
-		pr, err := archiveProjectProvider.GetProject(ctx, input.Body.URL, input.Body.Headers)
-		if err != nil {
-			if projectErr, ok := err.(*projectprovider.RequestError); ok {
-				if projectErr.StatusCode == 404 {
-					return nil, huma.Error404NotFound("Archive not found")
-				}
+		if vars != "" {
+			err = project.AppendVariables(vars)
+			if err != nil {
+				return nil, huma.Error400BadRequest("Failed to parse variables", err)
 			}
-
-			return nil, huma.Error500InternalServerError("Failed to get archive from URL", err)
 		}
 
-		if input.Body.Input.Validate {
-			jsonSchema := pr.GetJSONschema()
+		if validate {
+			jsonSchema := project.GetJSONschemaFile()
 
-			if jsonSchema == nil {
-				return nil, huma.Error404NotFound("No json schema found in the archive, please check that a json schema exists in the archive or disable variables validation")
+			if jsonSchema == nil || jsonSchema.Size() == 0 {
+				return nil, huma.Error400BadRequest("No json schema found in the archive, please make sure that a json schema exists and it is not empty or disable variables validation")
 			}
 
-			err := validation.Validate(strings.NewReader(input.Body.Input.Variables), jsonSchema.Content)
+			err := validation.Validate(strings.NewReader(vars), jsonSchema.Content)
 			if err != nil {
 				return nil, huma.Error400BadRequest("Provided variables do not conform to the json schema")
 			}
 		}
 
-		variables := input.Body.Input.Variables
-		if variables != "" {
-			var parsedVars map[string]any
-			err = json.Unmarshal([]byte(variables), &parsedVars)
-			if err != nil {
-				return nil, huma.Error500InternalServerError("Failed to parse variables", err)
-			}
-
-			pr.AppendVariables(variables)
-		}
-
-		res, err := pdfService.Generate(&pr)
+		res, err := pdfService.Generate(project)
 		if err != nil {
-			if cache != nil {
-				if err2 := cache.DeleteArchive(ctx, archiveCacheKey); err2 != nil {
+			if cacheInstance != nil {
+				if err2 := cacheInstance.DeleteArchive(ctx, archiveCacheKey); err2 != nil {
 					return nil, huma.Error500InternalServerError("Failed to cleanup archive", err2)
 				}
 			}
@@ -197,8 +190,8 @@ func resolver(
 			return nil, huma.Error500InternalServerError("Failed to generate pdf", err)
 		}
 
-		if cache != nil {
-			err = cache.SetPDF(ctx, pdfCacheKey, bytes.NewReader(res), int64(len(res)))
+		if cacheInstance != nil {
+			err = cacheInstance.SetPDF(ctx, pdfCacheKey, bytes.NewReader(res), int64(len(res)))
 			if err != nil {
 				return nil, huma.Error500InternalServerError("Failed to set cache value", err)
 			}
@@ -217,4 +210,24 @@ func pdfBody(pdfContent []byte) func(ctx huma.Context) {
 			return
 		}
 	}
+}
+
+func archiveToProject(ctx context.Context, file map[string][]*multipart.FileHeader) (*service.Project, string, error) {
+	for name, rawFiles := range file {
+		for _, rawFile := range rawFiles {
+			file, err := rawFile.Open()
+			if err != nil {
+				return nil, "", err
+			}
+
+			project, err := archive.ExtractToProject(ctx, name, file)
+			if err != nil {
+				return nil, "", err
+			}
+
+			return &project, name, nil
+		}
+	}
+
+	return nil, "", errors.New("no archive file found")
 }

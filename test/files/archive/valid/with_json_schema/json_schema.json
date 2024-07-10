@@ -1,0 +1,14 @@
+{
+    "id": "https://example.com/test.json",
+    "schema": "https://json-schema.org/draft/2020-12/schema",
+    "description": "A test representation of a schema",
+    "type": "object",
+    "required": [
+      "title"
+    ],
+    "properties": {
+      "title": {
+        "type": "string"
+      }
+    }
+}

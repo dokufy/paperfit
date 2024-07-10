@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"path"
 
-	"github.com/atoncetti/combiner/internal/archiver"
-	"github.com/atoncetti/combiner/internal/cacher"
+	"github.com/atoncetti/combiner/internal/archive"
+	"github.com/atoncetti/combiner/internal/cache"
 	"github.com/atoncetti/combiner/internal/httptool"
 	"github.com/atoncetti/combiner/internal/logger"
 	"github.com/atoncetti/combiner/internal/service"
@@ -18,7 +18,7 @@ type ArchiveProjectServiceProvider interface {
 }
 
 type ArchiveProjectProvider struct {
-	cache  *cacher.Cacher
+	cache  *cache.Cache
 	logger *logger.Logger
 }
 
@@ -37,7 +37,7 @@ func NewArchiveProjectProvider(logger *logger.Logger, options ...ArchiveProjectP
 	return provider, nil
 }
 
-func WithCache(cache cacher.Cacher) ArchiveProjectProviderOptions {
+func WithCache(cache cache.Cache) ArchiveProjectProviderOptions {
 	return func(storage *ArchiveProjectProvider) error {
 		storage.cache = &cache
 
@@ -47,9 +47,9 @@ func WithCache(cache cacher.Cacher) ArchiveProjectProviderOptions {
 
 func (p *ArchiveProjectProvider) GetProject(ctx context.Context, url string, headers map[string][]string) (service.Project, error) {
 	var archiveName string
-	var archive io.Reader
+	var rawArchive io.Reader
 
-	cacheKey, err := cacher.Key([][]byte{[]byte(url), httptool.FlattenHeaders(headers)})
+	cacheKey, err := cache.Key([][]byte{[]byte(url), httptool.FlattenHeaders(headers)})
 	if err != nil {
 		return service.Project{}, err
 	}
@@ -62,11 +62,11 @@ func (p *ArchiveProjectProvider) GetProject(ctx context.Context, url string, hea
 
 		if cachedArchive != nil {
 			archiveName = "archive.tar.br"
-			archive = cachedArchive
+			rawArchive = cachedArchive
 		}
 	}
 
-	if archive == nil {
+	if rawArchive == nil {
 		client := http.Client{}
 
 		req, err := http.NewRequest("GET", url, nil)
@@ -82,17 +82,17 @@ func (p *ArchiveProjectProvider) GetProject(ctx context.Context, url string, hea
 		}
 
 		archiveName = path.Base(url)
-		archive = res.Body
+		rawArchive = res.Body
 	}
 
-	project, err := archiver.ExtractToProject(ctx, archiveName, archive)
+	project, err := archive.ExtractToProject(ctx, archiveName, rawArchive)
 	if err != nil {
 		return service.Project{}, err
 	}
 
 	if p.cache != nil {
 		// TODO: run this in a separate goroutine
-		file, err := archiver.CompressArchiveProject(ctx, &project)
+		file, err := archive.CompressArchiveProject(ctx, &project)
 		if err != nil {
 			return service.Project{}, err
 		}

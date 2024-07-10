@@ -1,4 +1,4 @@
-package pdfprovider
+package pdfgenerator
 
 import (
 	"bytes"

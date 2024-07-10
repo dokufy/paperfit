@@ -1,4 +1,4 @@
-package pdfprovider
+package pdfgenerator
 
 import (
 	"errors"
@@ -8,22 +8,23 @@ import (
 	"github.com/atoncetti/combiner/internal/service"
 )
 
-type HTTPpdfProvider struct {
+type HTTPpdfGenerator struct {
 	endpoint string
 }
 
-func NewHTTPpdfProvider(endpoint string) *HTTPpdfProvider {
-	return &HTTPpdfProvider{endpoint: endpoint}
+func NewHTTPpdfGenerator(endpoint string) *HTTPpdfGenerator {
+	return &HTTPpdfGenerator{endpoint: endpoint}
 }
 
-func (p *HTTPpdfProvider) Generate(project *service.Project) ([]byte, error) {
+func (p *HTTPpdfGenerator) Generate(project *service.Project) ([]byte, error) {
 	// TODO: fix margins, add timeout env variable
 	multipart, err := MultipartForm(project.GetFiles(), &map[string]string{
-		"marginTop":    "0",
-		"marginLeft":   "0",
-		"marginRight":  "0",
-		"marginBottom": "0",
-		"waitTimeout":  "300.0",
+		"marginTop":         "0",
+		"marginLeft":        "0",
+		"marginRight":       "0",
+		"marginBottom":      "0",
+		"waitTimeout":       "300.0",
+		"preferCssPageSize": "true",
 	})
 	if err != nil {
 		return nil, err

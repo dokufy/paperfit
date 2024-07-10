@@ -1,43 +1,164 @@
 package cache
 
 import (
+	"bytes"
 	"context"
+	"crypto"
+	"encoding/base64"
+	"io"
+	"path/filepath"
 
+	"github.com/atoncetti/combiner/internal/encryption"
+	"github.com/atoncetti/combiner/internal/logger"
+	"github.com/atoncetti/combiner/internal/service/storage"
 	"github.com/eko/gocache/lib/v4/store"
 )
 
-const CacheType = "default"
-
 type Cache struct {
-	storage store.StoreInterface
+	cacheAdapter  *storage.CacheAdapter
+	encryptionKey *string
+	logger        *logger.Logger
 }
 
-func New(store store.StoreInterface) *Cache {
-	return &Cache{
-		storage: store,
+type CacherOptions func(cache *Cache) error
+
+func New(dsn string, options ...CacherOptions) (*Cache, error) {
+	cache := &Cache{}
+
+	if options != nil {
+		for _, cfg := range options {
+			if cfg != nil {
+				err := cfg(cache)
+				if err != nil {
+					return &Cache{}, err
+				}
+			}
+		}
+	}
+
+	storageOpts := []storage.StorageOption{}
+
+	if cache.logger != nil {
+		storageOpts = append(storageOpts, storage.WithLogger(*cache.logger))
+	}
+
+	store, err := storage.NewStorageAdapter(dsn, storageOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	cache.cacheAdapter = storage.NewCacheAdapter(store)
+
+	return cache, nil
+}
+
+func WithEncryption(key string) CacherOptions {
+	return func(cache *Cache) error {
+		cache.encryptionKey = &key
+
+		return nil
 	}
 }
 
-func (c *Cache) Get(ctx context.Context, key string) (any, error) {
-	return c.storage.Get(ctx, key)
+func WithLogger(logger *logger.Logger) CacherOptions {
+	return func(cache *Cache) error {
+		cache.logger = logger
+
+		return nil
+	}
 }
 
-func (c *Cache) Set(ctx context.Context, key string, object any, options ...store.Option) error {
-	return c.storage.Set(ctx, key, object, options...)
+func (r *Cache) GetArchive(ctx context.Context, key string) (io.Reader, error) {
+	return get(ctx, r, key, "archive")
 }
 
-func (c *Cache) Delete(ctx context.Context, key string) error {
-	return c.storage.Delete(ctx, key)
+func (r *Cache) GetPDF(ctx context.Context, key string) (io.Reader, error) {
+	return get(ctx, r, key, "pdf")
 }
 
-func (c *Cache) Invalidate(ctx context.Context, options ...store.InvalidateOption) error {
-	return c.storage.Invalidate(ctx, nil)
+func (r *Cache) SetArchive(ctx context.Context, key string, archive io.Reader, size int64) error {
+	return set(ctx, r, key, archive, size, "archive")
 }
 
-func (c *Cache) Clear(ctx context.Context) error {
-	return c.storage.Clear(ctx)
+func (r *Cache) SetPDF(ctx context.Context, key string, pdf io.Reader, size int64) error {
+	return set(ctx, r, key, pdf, size, "pdf")
 }
 
-func (c *Cache) GetType() string {
-	return CacheType
+func (r *Cache) DeleteArchive(ctx context.Context, key string) error {
+	return delete(ctx, r, key, "archive")
+}
+
+func (r *Cache) DeletePDF(ctx context.Context, key string) error {
+	return delete(ctx, r, key, "pdf")
+}
+
+func Key(keys [][]byte) (string, error) {
+	hash := crypto.SHA1.New()
+	compositeKey := bytes.Join(keys, []byte{})
+
+	_, err := hash.Write(compositeKey)
+	if err != nil {
+		return "", err
+	}
+
+	sha := hash.Sum(nil)
+
+	return base64.URLEncoding.EncodeToString(sha), nil
+}
+
+func get(ctx context.Context, cache *Cache, key string, basePath string) (io.Reader, error) {
+	path := filepath.Join(basePath, key)
+
+	pdf, err := cache.cacheAdapter.Get(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	if pdf == nil {
+		return nil, nil
+	}
+
+	if cache.encryptionKey != nil {
+		r, err := encryption.DecryptingReader(*cache.encryptionKey, pdf.(io.Reader))
+		if err != nil {
+			return nil, err
+		}
+
+		return r, nil
+	}
+
+	return pdf.(io.Reader), nil
+}
+
+func set(ctx context.Context, cache *Cache, key string, pdf io.Reader, size int64, basePath string) error {
+	path := filepath.Join(basePath, key)
+
+	reader := pdf
+
+	if cache.encryptionKey != nil {
+		r, err := encryption.EncryptingReader(*cache.encryptionKey, pdf)
+		if err != nil {
+			return err
+		}
+
+		reader = r
+	}
+
+	err := cache.cacheAdapter.Set(ctx, path, reader, store.WithCost(size))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func delete(ctx context.Context, cache *Cache, key string, basePath string) error {
+	path := filepath.Join(basePath, key)
+
+	err := cache.cacheAdapter.Delete(ctx, path)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

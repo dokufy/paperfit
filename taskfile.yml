@@ -11,7 +11,7 @@ env:
 
   PDF_GENERATOR_ENDPOINT: '{{ env "PDF_GENERATOR_ENDPOINT" | default "http://localhost:5000/forms/chromium/convert/html" }}'
 
-  CACHE_URL: '{{ env "CACHE_URL" | default "minio://testing?credential=hmac:0t1nP2rMFBTmz2kbpeOq:yU0JLU4wVrOjDsqCO8E8Mlw1tR0AYUBVtdkuWSZJ&endpoint=http:localhost:9000" }}'
+  CACHE_URL: '{{ env "CACHE_URL" | default "minio://testing?credential=hmac:z6PL3OSlZHXprX5eXcKB:mzTWe1jXm0bLBqEPd3KNS0ZS7mQI3dpqeLuoPXIE&endpoint=http:localhost:9000" }}'
   CACHE_ENCRYPTION_KEY: '{{ env "CACHE_ENCRYPTION_KEY" | default "NamGxa5cJVKvd+lXyJtG0UUgsGd7euwHnhDD8SW/1hOAWr6DWeS0w26myN5Thl+U" }}'
 
 dotenv: [".env", "{{.ENV}}/.env.", "{{.HOME}}/.env"]
@@ -66,8 +66,6 @@ tasks:
     desc: runs tests
     vars:
       PATH: '{{ .CLI_ARGS | default "./..." }}'
-    env:
-      CACHE_URL: "minio://testing?credential=hmac:0t1nP2rMFBTmz2kbpeOq:yU0JLU4wVrOjDsqCO8E8Mlw1tR0AYUBVtdkuWSZJ&endpoint=http:localhost:9000"
     cmds:
       - go test -v {{ .PATH }}
 

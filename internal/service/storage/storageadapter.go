@@ -15,20 +15,20 @@ import (
 	"go.beyondstorage.io/v5/types"
 )
 
-type Storage struct {
+type StorageAdapter struct {
 	store  types.Storager
 	logger logger.Logger
 }
 
-type StorageOption func(storage *Storage) error
+type StorageOption func(storage *StorageAdapter) error
 
-func New(url string, configs ...StorageOption) (*Storage, error) {
+func NewStorageAdapter(url string, configs ...StorageOption) (*StorageAdapter, error) {
 	store, err := services.NewStoragerFromString(url)
 	if err != nil {
 		return nil, err
 	}
 
-	storage := &Storage{store: store, logger: logger.New()}
+	storage := &StorageAdapter{store: store, logger: logger.New()}
 
 	for _, cfg := range configs {
 		err := cfg(storage)
@@ -41,20 +41,20 @@ func New(url string, configs ...StorageOption) (*Storage, error) {
 }
 
 func WithLogger(logger logger.Logger) StorageOption {
-	return func(storage *Storage) error {
+	return func(storage *StorageAdapter) error {
 		storage.logger = logger
 
 		return nil
 	}
 }
 
-func (s *Storage) GetWithTTL(ctx context.Context, key any) (any, time.Duration, error) {
+func (s *StorageAdapter) GetWithTTL(ctx context.Context, key any) (any, time.Duration, error) {
 	value, err := s.Get(ctx, key)
 
 	return value, 0, err
 }
 
-func (s *Storage) Get(ctx context.Context, key any) (any, error) {
+func (s *StorageAdapter) Get(ctx context.Context, key any) (any, error) {
 	var buf bytes.Buffer
 
 	_, err := s.store.ReadWithContext(ctx, key.(string), &buf)
@@ -66,7 +66,7 @@ func (s *Storage) Get(ctx context.Context, key any) (any, error) {
 	return &buf, nil
 }
 
-func (s *Storage) Set(ctx context.Context, key any, value any, options ...store.Option) error {
+func (s *StorageAdapter) Set(ctx context.Context, key any, value any, options ...store.Option) error {
 	opts := store.ApplyOptions(options...)
 
 	_, err := s.store.WriteWithContext(ctx, key.(string), value.(io.Reader), opts.Cost)
@@ -78,18 +78,18 @@ func (s *Storage) Set(ctx context.Context, key any, value any, options ...store.
 	return nil
 }
 
-func (s *Storage) Delete(ctx context.Context, key any) error {
+func (s *StorageAdapter) Delete(ctx context.Context, key any) error {
 	return s.store.DeleteWithContext(ctx, key.(string))
 }
 
-func (s *Storage) Invalidate(ctx context.Context, options ...store.InvalidateOption) error {
+func (s *StorageAdapter) Invalidate(ctx context.Context, options ...store.InvalidateOption) error {
 	return nil
 }
 
-func (s *Storage) Clear(ctx context.Context) error {
+func (s *StorageAdapter) Clear(ctx context.Context) error {
 	return nil
 }
 
-func (s *Storage) GetType() string {
+func (s *StorageAdapter) GetType() string {
 	return s.store.Metadata().Name
 }

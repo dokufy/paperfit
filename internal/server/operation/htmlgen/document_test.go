@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/atoncetti/combiner/internal/server/operation/htmlgen"
-	"github.com/atoncetti/combiner/internal/service/pdfprovider"
+	"github.com/atoncetti/combiner/internal/service/pdfgenerator"
 	"github.com/atoncetti/combiner/test/mocks"
 	"github.com/danielgtaylor/huma/v2/humatest"
 	"github.com/stretchr/testify/assert"
@@ -31,7 +31,7 @@ func (s *TestSuite) TestGeneratePDF_200() {
 	pdfServiceMock := new(mocks.PDFserviceMock)
 	project := mocks.ProjectMock("test")
 
-	multipart, _ := pdfprovider.MultipartForm(project.GetFiles(), nil)
+	multipart, _ := pdfgenerator.MultipartForm(project.GetFiles(), nil)
 
 	pdfServiceMock.On("Generate", mock.Anything).Return()
 
@@ -52,7 +52,7 @@ func (s *TestSuite) TestGeneratePDF_WithValidateArguments200() {
 	pdfServiceMock := new(mocks.PDFserviceMock)
 	project := mocks.ProjectMock("test")
 
-	multipart, _ := pdfprovider.MultipartForm(project.GetFiles(), &map[string]string{"variables": "{\"title\": \"this is a title\"}"})
+	multipart, _ := pdfgenerator.MultipartForm(project.GetFiles(), &map[string]string{"variables": "{\"title\": \"this is a title\"}"})
 
 	pdfServiceMock.On("Generate", mock.Anything).Return()
 
@@ -73,7 +73,7 @@ func (s *TestSuite) TestGeneratePDF_Fails400_InvalidArguments() {
 	pdfServiceMock := new(mocks.PDFserviceMock)
 	project := mocks.ProjectMock("test")
 
-	multipart, _ := pdfprovider.MultipartForm(project.GetFiles(), &map[string]string{"variables": "bad variables"})
+	multipart, _ := pdfgenerator.MultipartForm(project.GetFiles(), &map[string]string{"variables": "bad variables"})
 
 	pdfServiceMock.On("Generate", mock.Anything).Return()
 

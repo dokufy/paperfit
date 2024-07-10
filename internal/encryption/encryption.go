@@ -1,11 +1,9 @@
-package crypter
+package encryption
 
 import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
-
-	// "crypto/rand"
 	"errors"
 	"io"
 )
@@ -17,9 +15,6 @@ var (
 
 func EncryptingReader(key string, r io.Reader) (*cipher.StreamReader, error) {
 	iv := getIV()
-	// if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-	// 	return nil, err
-	// }
 
 	block, err := newBlock(key)
 	if err != nil {

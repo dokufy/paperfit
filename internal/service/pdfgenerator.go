@@ -10,6 +10,6 @@ var (
 	ErrInternalError  = errors.New("internal error")
 )
 
-type PDFserviceProvider interface {
+type PDFserviceGenerator interface {
 	Generate(project *Project) ([]byte, error)
 }

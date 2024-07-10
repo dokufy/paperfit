@@ -4,12 +4,13 @@ import (
 	"net/http"
 
 	"github.com/atoncetti/combiner/config"
-	"github.com/atoncetti/combiner/internal/cacher"
+	"github.com/atoncetti/combiner/internal/cache"
 	"github.com/atoncetti/combiner/internal/logger"
 	"github.com/atoncetti/combiner/internal/server/operation/archivegen"
+	"github.com/atoncetti/combiner/internal/server/operation/archiveurlgen"
 	"github.com/atoncetti/combiner/internal/server/operation/htmlgen"
 	"github.com/atoncetti/combiner/internal/service"
-	"github.com/atoncetti/combiner/internal/service/pdfprovider"
+	"github.com/atoncetti/combiner/internal/service/pdfgenerator"
 	"github.com/atoncetti/combiner/internal/service/projectprovider"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
@@ -21,23 +22,23 @@ func New(port string) {
 
 	logger := logger.New()
 
-	httpPDFprovider := pdfprovider.NewHTTPpdfProvider(config.Config.PDFgeneratorEndpoint)
+	httpPDFprovider := pdfgenerator.NewHTTPpdfGenerator(config.Config.PDFgeneratorEndpoint)
 
-	var c *cacher.Cacher
+	var c *cache.Cache
 	if config.Config.CacheConfig != nil {
-		opts := []cacher.CacherOptions{cacher.WithLogger(&logger)}
+		opts := []cache.CacherOptions{cache.WithLogger(&logger)}
 
 		if config.Config.CacheConfig.EncryptionKey != nil {
-			opts = append(opts, cacher.WithEncryption(*config.Config.CacheConfig.EncryptionKey))
+			opts = append(opts, cache.WithEncryption(*config.Config.CacheConfig.EncryptionKey))
 		}
 
-		cacher, err := cacher.New(config.Config.CacheConfig.CacheUrl, opts...)
+		cache, err := cache.New(config.Config.CacheConfig.CacheUrl, opts...)
 		if err != nil {
-			logger.Error("Failed to create cacher", err)
-			panic("failed to create cacher")
+			logger.Error("Failed to create cache", err)
+			panic("failed to create cache")
 		}
 
-		c = cacher
+		c = cache
 	}
 
 	router := chi.NewMux()
@@ -48,13 +49,15 @@ func New(port string) {
 	if err := http.ListenAndServe("localhost:"+port, router); err != nil {
 		panic("failed to start server")
 	}
+
+	logger.Info("listening on localhost:" + port)
 }
 
-func AddRoutes(api huma.API, pdfService service.PDFserviceProvider, cacher *cacher.Cacher, logger *logger.Logger) {
+func AddRoutes(api huma.API, pdfService service.PDFserviceGenerator, cache *cache.Cache, logger *logger.Logger) {
 	opts := []projectprovider.ArchiveProjectProviderOptions{}
 
-	if cacher != nil {
-		opts = append(opts, projectprovider.WithCache(*cacher))
+	if cache != nil {
+		opts = append(opts, projectprovider.WithCache(*cache))
 	}
 
 	archiveProjectProvider, err := projectprovider.NewArchiveProjectProvider(logger, opts...)
@@ -64,5 +67,6 @@ func AddRoutes(api huma.API, pdfService service.PDFserviceProvider, cacher *cach
 	}
 
 	htmlgen.RegisterOperation(api, "/pdf/generate/html", pdfService)
-	archivegen.RegisterOperation(api, "/pdf/generate/archive", archiveProjectProvider, pdfService, cacher)
+	archiveurlgen.RegisterOperation(api, "/pdf/generate/url", archiveProjectProvider, pdfService, cache)
+	archivegen.RegisterOperation(api, "/pdf/generate/archive", pdfService, cache)
 }

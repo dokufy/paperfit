@@ -14,7 +14,7 @@ type DocumentInput struct {
 	}
 }
 
-type DocumentArchiveInput struct {
+type DocumentArchiveUrlInput struct {
 	Body struct {
 		URL     string
 		Headers map[string][]string
@@ -22,12 +22,16 @@ type DocumentArchiveInput struct {
 	}
 }
 
+type DocumentArchiveInput struct {
+	RawBody   multipart.Form
+	Validate  bool
+	Variables string
+}
+
 type DocumentFileInput struct {
-	RawBody multipart.Form
-	Body    struct {
-		Template []byte
-		Input    Input
-	}
+	RawBody   multipart.Form
+	Validate  bool
+	Variables string
 }
 
 type DocumentOutput struct {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"slices"
@@ -21,7 +22,7 @@ func NewProject(files []*File) Project {
 	}
 }
 
-func (p *Project) GetIndex() *File {
+func (p *Project) GetIndexFile() *File {
 	index := slices.IndexFunc(p.files, func(f *File) bool { return f.Name() == "index.html" })
 
 	if index == -1 {
@@ -31,7 +32,7 @@ func (p *Project) GetIndex() *File {
 	return p.files[index]
 }
 
-func (p *Project) GetJSONschema() *File {
+func (p *Project) GetJSONschemaFile() *File {
 	index := slices.IndexFunc(p.files, func(f *File) bool { return f.Name() == "json_schema.json" })
 
 	if index == -1 {
@@ -52,8 +53,18 @@ func (p *Project) AppendFile(name string, content io.Reader, size int64) error {
 	return nil
 }
 
-func (p *Project) AppendVariables(JSONvariables string) error {
-	index := p.GetIndex()
+func (p *Project) AppendVariables(variables string) error {
+	if variables == "" {
+		return nil
+	}
+
+	var parsedVars map[string]any
+	err := json.Unmarshal([]byte(variables), &parsedVars)
+	if err != nil {
+		return err
+	}
+
+	index := p.GetIndexFile()
 
 	if index == nil {
 		return ErrIndexFileMissing
@@ -64,7 +75,7 @@ func (p *Project) AppendVariables(JSONvariables string) error {
 		return err
 	}
 
-	script := buildJSscript(JSONvariables)
+	script := buildJSscript(variables)
 	appendScriptToHead(doc, script)
 
 	modifiedIndex, err := renderHTML(doc)
