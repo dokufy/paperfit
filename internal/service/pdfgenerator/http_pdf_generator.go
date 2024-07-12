@@ -17,7 +17,7 @@ func NewHTTPpdfGenerator(endpoint string) *HTTPpdfGenerator {
 }
 
 func (p *HTTPpdfGenerator) Generate(project *service.Project) ([]byte, error) {
-	// TODO: fix margins, add timeout env variable
+	// TODO: add timeout env variable
 	multipart, err := MultipartForm(project.GetFiles(), &map[string]string{
 		"marginTop":         "0",
 		"marginLeft":        "0",

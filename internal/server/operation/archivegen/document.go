@@ -27,32 +27,36 @@ func definition(path string) huma.Operation {
 		Method:      http.MethodPost,
 		Path:        path,
 		Summary:     "Generate PDF from archive",
+		Description: `Takes an archive containing a static HTML project
+		consisting of at least a <b>index.html</b> file and optional variables
+		to be combined during PDF generation.<br />
+		The variables are available as global variables to
+		js scripts defined in the project.<br />
+		Variables can be validated with a <b>json_schema.json</b>
+		file contained in the archive.<br />
+		The generated PDF is cached to improve performance,
+        but the cache is cleared when the archive field name or variables change.<br />`,
 		RequestBody: &huma.RequestBody{
 			Description: "Input for document generation",
 			Required:    true,
 			Content: map[string]*huma.MediaType{
-				"multipart/form-data": {
+				"application/json": {
 					Schema: &huma.Schema{
 						Type: huma.TypeObject,
 						Properties: map[string]*huma.Schema{
 							"template": {
-								Type: huma.TypeString,
+								Type:   huma.TypeString,
+								Format: "binary",
 							},
-							"input": {
-								Type:        huma.TypeObject,
-								Description: "Input argument options",
-								Properties: map[string]*huma.Schema{
-									"variables": {
-										Type:        huma.TypeString,
-										Description: "Input variables that will be replaced in the document",
-										WriteOnly:   true,
-									},
-									"validate": {
-										Type:        huma.TypeBoolean,
-										Description: "Whether to validate the variables against a json schema or not",
-										WriteOnly:   true,
-									},
-								},
+							"variables": {
+								Type:        huma.TypeString,
+								Description: "Input variables that will be replaced in the document",
+								WriteOnly:   true,
+							},
+							"validate": {
+								Type:        huma.TypeBoolean,
+								Description: "Whether to validate the variables against a json schema or not",
+								WriteOnly:   true,
 							},
 						},
 						Required: []string{"template"},

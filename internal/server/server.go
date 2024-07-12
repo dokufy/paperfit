@@ -42,7 +42,7 @@ func New(port string) {
 	}
 
 	router := chi.NewMux()
-	api := humachi.New(router, huma.DefaultConfig("docfusion API", "0.1.0"))
+	api := humachi.New(router, huma.DefaultConfig("paperfit API", "0.1.0"))
 
 	AddRoutes(api, httpPDFprovider, c, &logger)
 
