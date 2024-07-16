@@ -40,9 +40,9 @@ func (s *CachedTestSuite) SetupSuite() {
 
 func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_Returns_200() {
 	archiveProjectServiceMock := new(mocks.ArchiveProjectServiceMock)
-	pdfServiceMock := new(mocks.PDFserviceMock)
-
 	archiveProjectServiceMock.On("GetProject", mock.Anything).Return()
+
+	pdfServiceMock := new(mocks.PDFserviceMock)
 	pdfServiceMock.On("Generate", mock.Anything).Return()
 
 	archiveurlgen.RegisterOperation(s.api, "/pdf/generate/archive", archiveProjectServiceMock, pdfServiceMock, s.cacheInstance)
@@ -77,9 +77,9 @@ func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_Returns_200() {
 
 func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_Different_Headers_Returns_200() {
 	archiveProjectServiceMock := new(mocks.ArchiveProjectServiceMock)
-	pdfServiceMock := new(mocks.PDFserviceMock)
-
 	archiveProjectServiceMock.On("GetProject", mock.Anything).Return()
+
+	pdfServiceMock := new(mocks.PDFserviceMock)
 	pdfServiceMock.On("Generate", mock.Anything).Return()
 
 	archiveurlgen.RegisterOperation(s.api, "/pdf/generate/archive", archiveProjectServiceMock, pdfServiceMock, s.cacheInstance)
@@ -132,9 +132,9 @@ func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_Different_Headers
 
 func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_With_Validate_Arguments_Returns_200() {
 	archiveProjectServiceMock := new(mocks.ArchiveProjectServiceMock)
-	pdfServiceMock := new(mocks.PDFserviceMock)
-
 	archiveProjectServiceMock.On("GetProject", mock.Anything).Return()
+
+	pdfServiceMock := new(mocks.PDFserviceMock)
 	pdfServiceMock.On("Generate", mock.Anything).Return()
 
 	archiveurlgen.RegisterOperation(s.api, "/pdf/generate/archive", archiveProjectServiceMock, pdfServiceMock, s.cacheInstance)
@@ -179,9 +179,9 @@ func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_With_Validate_Arg
 
 func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_With_Validate_Arguments_Empty_Schema_Returns_200() {
 	archiveProjectServiceMock := new(mocks.ArchiveProjectServiceMock)
-	pdfServiceMock := new(mocks.PDFserviceMock)
-
 	archiveProjectServiceMock.On("GetProject", mock.Anything).Return()
+
+	pdfServiceMock := new(mocks.PDFserviceMock)
 	pdfServiceMock.On("Generate", mock.Anything).Return()
 
 	archiveurlgen.RegisterOperation(s.api, "/pdf/generate/archive", archiveProjectServiceMock, pdfServiceMock, s.cacheInstance)

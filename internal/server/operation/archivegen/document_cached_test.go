@@ -44,7 +44,6 @@ func (s *CachedTestSuite) SetupSuite() {
 
 func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_Returns_200() {
 	pdfServiceMock := new(mocks.PDFserviceMock)
-
 	pdfServiceMock.On("Generate", mock.Anything).Return()
 
 	archivegen.RegisterOperation(s.api, "/pdf/generate/url", pdfServiceMock, s.cacheInstance)
@@ -86,7 +85,6 @@ func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_Returns_200() {
 
 func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_Different_Headers_Returns_200() {
 	pdfServiceMock := new(mocks.PDFserviceMock)
-
 	pdfServiceMock.On("Generate", mock.Anything).Return()
 
 	archivegen.RegisterOperation(s.api, "/pdf/generate/url", pdfServiceMock, s.cacheInstance)
@@ -135,7 +133,6 @@ func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_Different_Headers
 
 func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_With_Validate_Arguments_Returns_200() {
 	pdfServiceMock := new(mocks.PDFserviceMock)
-
 	pdfServiceMock.On("Generate", mock.Anything).Return()
 
 	archivegen.RegisterOperation(s.api, "/pdf/generate/url", pdfServiceMock, s.cacheInstance)
@@ -178,7 +175,6 @@ func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_With_Validate_Arg
 
 func (s *CachedTestSuite) Test_Fail_Generate_PDF_With_Cache_With_Validate_Arguments_Empty_Schema_Returns_200() {
 	pdfServiceMock := new(mocks.PDFserviceMock)
-
 	pdfServiceMock.On("Generate", mock.Anything).Return()
 
 	archivegen.RegisterOperation(s.api, "/pdf/generate/url", pdfServiceMock, s.cacheInstance)

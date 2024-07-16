@@ -35,15 +35,14 @@ func (s *TestSuite) SetupSuite() {
 
 func (s *TestSuite) Test_Success_Generate_PDF_No_Cache_Returns_200() {
 	pdfServiceMock := new(mocks.PDFserviceMock)
+	pdfServiceMock.On("Generate", mock.Anything).Return()
+
+	archivegen.RegisterOperation(s.api, "/pdf/generate/url", pdfServiceMock, nil)
 
 	archive, archive_size := test.File("archive/valid/simple.tar.gz")
 	file := service.NewFile("simple.tar.gz", archive, archive_size)
 
 	multipart, _ := pdfgenerator.MultipartForm([]*service.File{&file}, nil)
-
-	pdfServiceMock.On("Generate", mock.Anything).Return()
-
-	archivegen.RegisterOperation(s.api, "/pdf/generate/url", pdfServiceMock, nil)
 
 	resp := s.api.Post(
 		"/pdf/generate/url",
@@ -56,15 +55,17 @@ func (s *TestSuite) Test_Success_Generate_PDF_No_Cache_Returns_200() {
 
 func (s *TestSuite) Test_Generate_PDF_No_Cache_With_Validate_Variables_Returns_200() {
 	pdfServiceMock := new(mocks.PDFserviceMock)
+	pdfServiceMock.On("Generate", mock.Anything).Return()
+
+	archivegen.RegisterOperation(s.api, "/pdf/generate/url", pdfServiceMock, nil)
 
 	archive, archive_size := test.File("archive/valid/simple.tar.gz")
 	file := service.NewFile("simple.tar.gz", archive, archive_size)
 
-	multipart, _ := pdfgenerator.MultipartForm([]*service.File{&file}, &map[string]string{"variables": "{\"title\": \"this is a title\"}"})
-
-	pdfServiceMock.On("Generate", mock.Anything).Return()
-
-	archivegen.RegisterOperation(s.api, "/pdf/generate/url", pdfServiceMock, nil)
+	multipart, _ := pdfgenerator.MultipartForm(
+		[]*service.File{&file},
+		&map[string]string{"variables": "{\"title\": \"this is a title\"}"},
+	)
 
 	resp := s.api.Post(
 		"/pdf/generate/url",
@@ -81,15 +82,17 @@ func (s *TestSuite) Test_Generate_PDF_No_Cache_With_Validate_Variables_Returns_2
 
 func (s *TestSuite) Test_Success_Generate_PDF_No_Cache_With_Validate_Variables_Empty_Schema_Returns_200() {
 	pdfServiceMock := new(mocks.PDFserviceMock)
+	pdfServiceMock.On("Generate", mock.Anything).Return()
+
+	archivegen.RegisterOperation(s.api, "/pdf/generate/url", pdfServiceMock, nil)
 
 	archive, archive_size := test.File("archive/valid/simple.tar.gz")
 	file := service.NewFile("simple.tar.gz", archive, archive_size)
 
-	multipart, _ := pdfgenerator.MultipartForm([]*service.File{&file}, &map[string]string{"variables": "{\"title\": \"this is a title\"}"})
-
-	pdfServiceMock.On("Generate", mock.Anything).Return()
-
-	archivegen.RegisterOperation(s.api, "/pdf/generate/url", pdfServiceMock, nil)
+	multipart, _ := pdfgenerator.MultipartForm(
+		[]*service.File{&file},
+		&map[string]string{"variables": "{\"title\": \"this is a title\"}"},
+	)
 
 	resp := s.api.Post(
 		"/pdf/generate/url",
@@ -102,11 +105,11 @@ func (s *TestSuite) Test_Success_Generate_PDF_No_Cache_With_Validate_Variables_E
 
 func (s *TestSuite) Test_Fail_Generate_PDF_No_Cache_Archive_Not_Provided_Returns_400() {
 	pdfServiceMock := new(mocks.PDFserviceMock)
-
-	multipart, _ := pdfgenerator.MultipartForm([]*service.File{}, nil)
+	pdfServiceMock.On("Generate", mock.Anything).Return()
 
 	archivegen.RegisterOperation(s.api, "/pdf/generate/url", pdfServiceMock, nil)
-	pdfServiceMock.On("Generate", mock.Anything).Return()
+
+	multipart, _ := pdfgenerator.MultipartForm([]*service.File{}, nil)
 
 	resp := s.api.Post(
 		"/pdf/generate/url",
@@ -119,15 +122,15 @@ func (s *TestSuite) Test_Fail_Generate_PDF_No_Cache_Archive_Not_Provided_Returns
 	s.assert.Equal(400, resp.Code)
 }
 
-func (s *TestSuite) Test_Fail_Generate_PDF_No_Cache_JSONschema_Required_And_NotFound_Returns_404() {
+func (s *TestSuite) Test_Fail_Generate_PDF_No_Cache_JSONschema_Required_And_NotFound_Returns_400() {
 	pdfServiceMock := new(mocks.PDFserviceMock)
+
+	archivegen.RegisterOperation(s.api, "/pdf/generate/url", pdfServiceMock, nil)
 
 	archive, archive_size := test.File("archive/valid/simple.tar.gz")
 	file := service.NewFile("simple.tar.gz", archive, archive_size)
 
 	multipart, _ := pdfgenerator.MultipartForm([]*service.File{&file}, &map[string]string{"validate": "true"})
-
-	archivegen.RegisterOperation(s.api, "/pdf/generate/url", pdfServiceMock, nil)
 
 	resp := s.api.Post(
 		"/pdf/generate/url",
@@ -138,25 +141,29 @@ func (s *TestSuite) Test_Fail_Generate_PDF_No_Cache_JSONschema_Required_And_NotF
 	// archiveProjectServiceMock.AssertExpectations(s.T())
 	// pdfServiceMock.AssertNotCalled(s.T(), "Generate", mock.Anything)
 
-	s.assert.Equal(404, resp.Code)
+	s.assert.Equal(400, resp.Code)
 }
 
 func (s *TestSuite) Test_Fail_Generate_PDF_No_Cache_Variables_Validation_Fails_Returns_400() {
 	pdfServiceMock := new(mocks.PDFserviceMock)
+	pdfServiceMock.On("Generate", mock.Anything).Return()
+
+	archivegen.RegisterOperation(s.api, "/pdf/generate/url", pdfServiceMock, nil)
 
 	archive, archive_size := test.File("archive/valid/with_json_schema.tar.gz")
 	file := service.NewFile("simple.tar.gz", archive, archive_size)
 
-	multipart, _ := pdfgenerator.MultipartForm([]*service.File{&file}, &map[string]string{"variables": "{\"wrong\": \"missing!!\"}", "validate": "true"})
-	pdfServiceMock.On("Generate", mock.Anything).Return()
-
-	archivegen.RegisterOperation(s.api, "/pdf/generate/url", pdfServiceMock, nil)
+	multipart, _ := pdfgenerator.MultipartForm(
+		[]*service.File{&file},
+		&map[string]string{"variables": "{\"wrong\": \"missing!!\"}", "validate": "true"},
+	)
 
 	resp := s.api.Post(
 		"/pdf/generate/url",
 		"Content-type: "+multipart.FormDataContentType(),
 		multipart.Body(),
 	)
+
 	// archiveProjectServiceMock.AssertExpectations(s.T())
 	pdfServiceMock.AssertNotCalled(s.T(), "Generate", mock.Anything)
 

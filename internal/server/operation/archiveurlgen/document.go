@@ -165,7 +165,7 @@ func resolver(
 			jsonSchema := project.GetJSONschemaFile()
 
 			if jsonSchema == nil {
-				return nil, huma.Error404NotFound("No json schema found in the archive, please make sure that a json schema exists in the archive or disable variables validation")
+				return nil, huma.Error400BadRequest("No json schema found in the archive, please make sure that a json schema exists in the archive or disable variables validation")
 			}
 
 			err := validation.Validate(strings.NewReader(input.Body.Input.Variables), jsonSchema.Content)

@@ -29,11 +29,11 @@ func (s *TestSuite) SetupSuite() {
 
 func (s *TestSuite) TestGeneratePDF_200() {
 	pdfServiceMock := new(mocks.PDFserviceMock)
+	pdfServiceMock.On("Generate", mock.Anything).Return()
+
 	project := mocks.ProjectMock("test")
 
 	multipart, _ := pdfgenerator.MultipartForm(project.GetFiles(), nil)
-
-	pdfServiceMock.On("Generate", mock.Anything).Return()
 
 	htmlgen.RegisterOperation(s.api, "/pdf/generate/html", pdfServiceMock)
 
@@ -50,11 +50,11 @@ func (s *TestSuite) TestGeneratePDF_200() {
 
 func (s *TestSuite) TestGeneratePDF_WithValidateArguments200() {
 	pdfServiceMock := new(mocks.PDFserviceMock)
+	pdfServiceMock.On("Generate", mock.Anything).Return()
+
 	project := mocks.ProjectMock("test")
 
 	multipart, _ := pdfgenerator.MultipartForm(project.GetFiles(), &map[string]string{"variables": "{\"title\": \"this is a title\"}"})
-
-	pdfServiceMock.On("Generate", mock.Anything).Return()
 
 	htmlgen.RegisterOperation(s.api, "/pdf/generate/html", pdfServiceMock)
 
@@ -71,11 +71,11 @@ func (s *TestSuite) TestGeneratePDF_WithValidateArguments200() {
 
 func (s *TestSuite) TestGeneratePDF_Fails400_InvalidArguments() {
 	pdfServiceMock := new(mocks.PDFserviceMock)
+	pdfServiceMock.On("Generate", mock.Anything).Return()
+
 	project := mocks.ProjectMock("test")
 
 	multipart, _ := pdfgenerator.MultipartForm(project.GetFiles(), &map[string]string{"variables": "bad variables"})
-
-	pdfServiceMock.On("Generate", mock.Anything).Return()
 
 	htmlgen.RegisterOperation(s.api, "/pdf/generate/html", pdfServiceMock)
 
