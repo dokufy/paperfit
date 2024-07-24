@@ -7,9 +7,16 @@ import (
 	"path/filepath"
 
 	"github.com/atoncetti/combiner/config"
+	"github.com/atoncetti/combiner/internal/service"
 )
 
-func File(relPath string) (io.Reader, int64) {
+func File(relPath string) service.File {
+	archive, archive_size := getFile(relPath)
+
+	return service.NewFile(filepath.Base(relPath), archive, archive_size)
+}
+
+func getFile(relPath string) (io.Reader, int64) {
 	path := FilePath(relPath)
 
 	content, err := os.ReadFile(path)

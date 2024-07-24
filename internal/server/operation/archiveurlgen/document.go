@@ -12,7 +12,7 @@ import (
 	"github.com/atoncetti/combiner/internal/server/schema"
 	"github.com/atoncetti/combiner/internal/service"
 	"github.com/atoncetti/combiner/internal/service/projectprovider"
-	"github.com/atoncetti/combiner/validation"
+	"github.com/atoncetti/combiner/internal/validation"
 	"github.com/danielgtaylor/huma/v2"
 )
 
@@ -126,7 +126,7 @@ func resolver(
 			return nil, huma.Error400BadRequest("No url provided")
 		}
 
-		pdfCacheKey, err := cache.Key([][]byte{[]byte(input.Body.URL), httptool.FlattenHeaders(input.Body.Headers), []byte(input.Body.Input.Variables)})
+		pdfCacheKey, err := cache.Key([][]byte{[]byte(input.Body.URL), httptool.FlattenHeaders(input.Body.Headers), []byte(input.Body.Variables)})
 		if err != nil {
 			return nil, huma.Error500InternalServerError("Failed to create cache key")
 		}
@@ -161,22 +161,24 @@ func resolver(
 			return nil, huma.Error500InternalServerError("Failed to get archive from URL", err)
 		}
 
-		if input.Body.Input.Validate {
+		err = project.AppendVariables(input.Body.Variables)
+		if err != nil {
+			return nil, huma.Error400BadRequest("Failed to parse variables", err)
+		}
+
+		if input.Body.Validate {
 			jsonSchema := project.GetJSONschemaFile()
 
-			if jsonSchema == nil {
-				return nil, huma.Error400BadRequest("No json schema found in the archive, please make sure that a json schema exists in the archive or disable variables validation")
+			if jsonSchema == nil || jsonSchema.Size() == 0 {
+				return nil, huma.Error400BadRequest("No json schema found in the archive, please make sure that a json schema exists and it is not empty or disable variables validation")
 			}
 
-			err := validation.Validate(strings.NewReader(input.Body.Input.Variables), jsonSchema.Content)
+			jsonSchemaContent, err := validation.Validate(strings.NewReader(input.Body.Variables), jsonSchema.Content)
 			if err != nil {
 				return nil, huma.Error400BadRequest("Provided variables do not conform to the json schema")
 			}
-		}
 
-		err = project.AppendVariables(input.Body.Input.Variables)
-		if err != nil {
-			return nil, huma.Error500InternalServerError("Failed to parse variables", err)
+			jsonSchema.Content = jsonSchemaContent
 		}
 
 		res, err := pdfService.Generate(&project)

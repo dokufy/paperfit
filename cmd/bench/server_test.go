@@ -27,7 +27,7 @@ func setupApi(b *testing.B) humatest.TestAPI {
 }
 
 func BenchmarkExplicitPdfGeneration_300k_characters(b *testing.B) {
-	mocks.NoMockPDFgenerator()
+	mocks.PassPDFgenerator()
 
 	contentCharacters := 300000
 
@@ -46,7 +46,7 @@ func BenchmarkExplicitPdfGeneration_300k_characters(b *testing.B) {
 }
 
 // func BenchmarkExplicitPdfGeneration_1M_characters(b *testing.B) {
-// 	mocks.NoMockPDFgenerator()
+// 	mocks.PassPDFgenerator()
 
 // 	contentCharacters := 10000000
 
@@ -66,7 +66,7 @@ func BenchmarkExplicitPdfGeneration_300k_characters(b *testing.B) {
 // }
 
 // func BenchmarkExplicitPdfGeneration_10M_characters(b *testing.B) {
-// 	mocks.NoMockPDFgenerator()
+// 	mocks.PassPDFgenerator()
 
 // 	contentCharacters := 10000000
 
@@ -85,7 +85,7 @@ func BenchmarkExplicitPdfGeneration_300k_characters(b *testing.B) {
 // }
 
 // func BenchmarkExplicitPdfGeneration_20M_characters(b *testing.B) {
-// 	mocks.NoMockPDFgenerator()
+// 	mocks.PassPDFgenerator()
 
 // 	contentCharacters := 20000000
 

@@ -3,6 +3,7 @@ package pdfgenerator
 import (
 	"errors"
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/atoncetti/combiner/internal/service"
@@ -27,6 +28,7 @@ func (p *HTTPpdfGenerator) Generate(project *service.Project) ([]byte, error) {
 		"preferCssPageSize": "true",
 	})
 	if err != nil {
+		log.Printf("%v", "_------------------")
 		return nil, err
 	}
 

@@ -9,16 +9,18 @@ type Input struct {
 
 type DocumentInput struct {
 	Body struct {
-		ID    string
-		Input Input
+		ID        string
+		Validate  bool
+		Variables string
 	}
 }
 
 type DocumentArchiveUrlInput struct {
 	Body struct {
-		URL     string
-		Headers map[string][]string
-		Input   Input
+		URL       string
+		Headers   map[string][]string
+		Validate  bool
+		Variables string
 	}
 }
 

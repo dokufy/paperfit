@@ -8,7 +8,9 @@ import (
 	"github.com/atoncetti/combiner/internal/cache"
 	"github.com/atoncetti/combiner/internal/logger"
 	"github.com/atoncetti/combiner/internal/server"
+	"github.com/atoncetti/combiner/internal/service"
 	"github.com/atoncetti/combiner/internal/service/pdfgenerator"
+	"github.com/atoncetti/combiner/test"
 	"github.com/atoncetti/combiner/test/mocks"
 	"github.com/danielgtaylor/huma/v2/humatest"
 	"github.com/stretchr/testify/assert"
@@ -61,8 +63,10 @@ func addRoutes(api humatest.TestAPI, pdfProvider *pdfgenerator.HTTPpdfGenerator,
 	server.AddRoutes(api, pdfProvider, cache, logger)
 }
 
-func (s *TestSuite) Test_200_Explicit_Generate() {
-	mocks.NoMockPDFgenerator()
+// Testing html operation
+
+func (s *TestSuite) Test_200_Html_Generate() {
+	mocks.PassPDFgenerator()
 
 	setupApiWithoutCache(s)
 
@@ -78,20 +82,22 @@ func (s *TestSuite) Test_200_Explicit_Generate() {
 	s.assert.Equal(200, resp.Code)
 }
 
-func (s *TestSuite) Test_200_No_Cache_Archive_Generate() {
-	mocks.NoMockPDFgenerator()
+// // Testing url operation
+
+func (s *TestSuite) Test_200_No_Cache_Url_Generate() {
+	mocks.PassPDFgenerator()
 	mocks.MockHTTPfileRequest(mocks.SimpleFileMockEndpoint)
 
 	setupApiWithoutCache(s)
 
 	body := map[string]string{"url": mocks.SimpleFileMockEndpoint.Url}
-	resp := s.api.Post("/pdf/generate/archive", "application/json", body)
+	resp := s.api.Post("/pdf/generate/url", "application/json", body)
 
 	s.assert.Equal(200, resp.Code)
 }
 
-func (s *TestSuite) Test_200_With_Cache_Archive_Generate() {
-	mocks.NoMockPDFgenerator()
+func (s *TestSuite) Test_200_With_Cache_Url_Generate() {
+	mocks.PassPDFgenerator()
 	mocks.MockHTTPfileRequest(mocks.SimpleFileMockEndpoint)
 
 	ctx := context.Background()
@@ -99,10 +105,10 @@ func (s *TestSuite) Test_200_With_Cache_Archive_Generate() {
 	setupApiWithCache(s)
 
 	body := map[string]string{"url": mocks.SimpleFileMockEndpoint.Url}
-	resp1 := s.api.Post("/pdf/generate/archive", "application/json", body)
+	resp1 := s.api.Post("/pdf/generate/url", "application/json", body)
 
 	mocks.RemoveMockedRequests()
-	resp2 := s.api.Post("/pdf/generate/archive", "application/json", body)
+	resp2 := s.api.Post("/pdf/generate/url", "application/json", body)
 
 	s.assert.Equal(200, resp1.Code)
 	s.assert.Equal(200, resp2.Code)
@@ -121,23 +127,103 @@ func (s *TestSuite) Test_200_With_Cache_Archive_Generate() {
 	s.cache.DeletePDF(ctx, pdfCacheKey)
 }
 
-func (s *TestSuite) Test_Fail_400_Archive_Generate_No_URL_Provided() {
+func (s *TestSuite) Test_Fail_400_Url_Generate_No_URL_Provided() {
 	setupApiWithoutCache(s)
 
 	body := map[string]string{"name": "John Doe", "occupation": "gardener"}
-	resp := s.api.Post("/pdf/generate/archive", "application/json", body)
+	resp := s.api.Post("/pdf/generate/url", "application/json", body)
 
 	s.assert.Equal(400, resp.Code)
 }
 
-func (s *TestSuite) Test_Fail_400_Archive_Generate_No_HTML_In_Archive() {
-	mocks.NoMockPDFgenerator()
+func (s *TestSuite) Test_Fail_400_Url_Generate_No_HTML_In_Archive() {
+	mocks.PassPDFgenerator()
 	mocks.MockHTTPfileRequest(mocks.NoHtmlFileMockEndpoint)
 
 	setupApiWithoutCache(s)
 
 	body := map[string]string{"url": mocks.NoHtmlFileMockEndpoint.Url}
-	resp := s.api.Post("/pdf/generate/archive", "application/json", body)
+	resp := s.api.Post("/pdf/generate/url", "application/json", body)
+
+	s.assert.Equal(400, resp.Code)
+}
+
+func (s *TestSuite) Test_200_No_Cache_Archive_Generate() {
+	mocks.PassPDFgenerator()
+	mocks.MockHTTPfileRequest(mocks.SimpleFileMockEndpoint)
+
+	setupApiWithoutCache(s)
+
+	body := map[string]string{"url": mocks.SimpleFileMockEndpoint.Url}
+	resp := s.api.Post("/pdf/generate/url", "Content-type: application/json", body)
+
+	s.assert.Equal(200, resp.Code)
+}
+
+// Testing archive operation
+
+func (s *TestSuite) Test_200_With_Cache_Archive_Generate() {
+	mocks.PassPDFgenerator()
+
+	ctx := context.Background()
+
+	setupApiWithCache(s)
+
+	file := test.File("archive/valid/with_json_schema.tar.gz")
+
+	multipart, _ := pdfgenerator.MultipartForm(
+		[]*service.File{&file},
+		&map[string]string{"variables": `{"title": "this is a title"}`},
+	)
+
+	resp1 := s.api.Post(
+		"/pdf/generate/archive",
+		"Content-type: "+multipart.FormDataContentType(),
+		multipart.Body(),
+	)
+
+	mocks.RemoveMockedRequests()
+
+	file = test.File("archive/valid/with_json_schema.tar.gz")
+
+	multipart, _ = pdfgenerator.MultipartForm(
+		[]*service.File{&file},
+		&map[string]string{"variables": `{"title": "this is a title"}`},
+	)
+
+	resp2 := s.api.Post(
+		"/pdf/generate/archive",
+		"Content-type: "+multipart.FormDataContentType(),
+		multipart.Body(),
+	)
+
+	s.assert.Equal(200, resp1.Code)
+	s.assert.Equal(200, resp2.Code)
+
+	archiveCacheKey, err := cache.Key([][]byte{[]byte(mocks.SimpleFileMockEndpoint.Url)})
+	if err != nil {
+		s.T().Fatal(err)
+	}
+
+	pdfCacheKey, err := cache.Key([][]byte{[]byte(mocks.SimpleFileMockEndpoint.Url)})
+	if err != nil {
+		s.T().Fatal(err)
+	}
+
+	s.cache.DeleteArchive(ctx, archiveCacheKey)
+	s.cache.DeletePDF(ctx, pdfCacheKey)
+}
+
+func (s *TestSuite) Test_Fail_400_Archive_Generate_No_Archive_Provided() {
+	setupApiWithoutCache(s)
+
+	multipart, _ := pdfgenerator.MultipartForm([]*service.File{}, &map[string]string{"validate": "true"})
+
+	resp := s.api.Post(
+		"/pdf/generate/archive",
+		"Content-type: "+multipart.FormDataContentType(),
+		multipart.Body(),
+	)
 
 	s.assert.Equal(400, resp.Code)
 }

@@ -32,7 +32,7 @@ func RemoveMockedRequests() {
 	gock.Off()
 }
 
-func NoMockPDFgenerator() {
+func PassPDFgenerator() {
 	config.Load()
 
 	gock.New(config.Config.PDFgeneratorEndpoint).

@@ -4,8 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/atoncetti/combiner/config"
 	"github.com/atoncetti/combiner/internal/cache"
 	"github.com/atoncetti/combiner/internal/server/operation/archiveurlgen"
+	"github.com/atoncetti/combiner/internal/service/pdfgenerator"
 	"github.com/atoncetti/combiner/test/mocks"
 	"github.com/danielgtaylor/huma/v2/humatest"
 	"github.com/stretchr/testify/assert"
@@ -22,194 +24,112 @@ type TestSuite struct {
 }
 
 func (s *TestSuite) SetupSuite() {
+	config.Load()
+	mocks.PassPDFgenerator()
+
+	archiveProjectServiceMock := new(mocks.ArchiveProjectServiceMock)
+	archiveProjectServiceMock.On("GetProject", mock.Anything).Return()
+
 	_, api := humatest.New(s.T())
+
+	pdfProvider := pdfgenerator.NewHTTPpdfGenerator(config.Config.PDFgeneratorEndpoint)
+	archiveurlgen.RegisterOperation(api, "/pdf/generate/url", archiveProjectServiceMock, pdfProvider, nil)
 
 	s.ctx = context.Background()
 	s.api = api
-	s.cacheInstance = nil
 	s.assert = assert.New(s.T())
 }
 
-func (s *TestSuite) Test_Success_Generate_PDF_No_Cache_Returns_200() {
-	archiveProjectServiceMock := new(mocks.ArchiveProjectServiceMock)
-	archiveProjectServiceMock.On("GetProject", mock.Anything).Return()
-
-	pdfServiceMock := new(mocks.PDFserviceMock)
-	pdfServiceMock.On("Generate", mock.Anything).Return()
-
-	archiveurlgen.RegisterOperation(s.api, "/pdf/generate/archive", archiveProjectServiceMock, pdfServiceMock, nil)
-
-	resp1 := s.api.Post(
-		"/pdf/generate/archive",
+func (s *TestSuite) Test_Success_Generate_200() {
+	resp := s.api.Post(
+		"/pdf/generate/url",
 		map[string]any{
 			"url": "existing_template_non_existing_schema",
 		})
 
-	s.assert.Equal(200, resp1.Code)
+	s.assert.Equal(200, resp.Code)
+}
 
-	resp2 := s.api.Post(
-		"/pdf/generate/archive",
+func (s *TestSuite) Test_Success_Generate_With_Variables_200() {
+	resp := s.api.Post(
+		"/pdf/generate/url",
 		map[string]any{
-			"url": "existing_template_non_existing_schema",
+			"url":       "existing_template_non_existing_schema",
+			"variables": `{"title": "this is a title"}`,
 		})
 
-	s.assert.Equal(200, resp2.Code)
-
-	// archiveProjectServiceMock.AssertExpectations(s.T())
-	// pdfServiceMock.AssertExpectations(s.T())
+	s.assert.Equal(200, resp.Code)
 }
 
-func (s *TestSuite) Test_Generate_PDF_No_Cache_With_Validate_Variables_Returns_200() {
-	archiveProjectServiceMock := new(mocks.ArchiveProjectServiceMock)
-	archiveProjectServiceMock.On("GetProject", mock.Anything).Return()
-
-	pdfServiceMock := new(mocks.PDFserviceMock)
-	pdfServiceMock.On("Generate", mock.Anything).Return()
-
-	archiveurlgen.RegisterOperation(s.api, "/pdf/generate/archive", archiveProjectServiceMock, pdfServiceMock, nil)
-
-	resp1 := s.api.Post(
-		"/pdf/generate/archive",
+func (s *TestSuite) Test_Generate_With_Validation_And_Variables_200() {
+	resp := s.api.Post(
+		"/pdf/generate/url",
 		map[string]any{
-			"url": "existing_template_existing_schema",
-			"argumentOptions": map[string]any{
-				"variables": "{\"title\": \"this is a title\"}",
-				"validate":  true,
-			},
+			"url":       "existing_template_existing_schema",
+			"variables": `{"title": "this is a title"}`,
+			"validate":  true,
 		},
 	)
 
-	s.assert.Equal(200, resp1.Code)
-
-	resp2 := s.api.Post(
-		"/pdf/generate/archive",
-		map[string]any{
-			"url": "existing_template_existing_schema",
-			"argumentOptions": map[string]any{
-				"variables": "{\"title\": \"this is a title\"}",
-				"validate":  true,
-			},
-		},
-	)
-
-	s.assert.Equal(200, resp2.Code)
-
-	// TODO: Figure out because https://github.com/stretchr/testify/issues/944
-	// archiveProjectServiceMock.AssertExpectations(s.T())
-	// pdfServiceMock.AssertExpectations(s.T())
+	s.assert.Equal(200, resp.Code)
 }
 
-func (s *TestSuite) Test_Success_Generate_PDF_No_Cache_With_Validate_Variables_Empty_Schema_Returns_200() {
-	archiveProjectServiceMock := new(mocks.ArchiveProjectServiceMock)
-	archiveProjectServiceMock.On("GetProject", mock.Anything).Return()
-
-	pdfServiceMock := new(mocks.PDFserviceMock)
-	pdfServiceMock.On("Generate", mock.Anything).Return()
-
-	archiveurlgen.RegisterOperation(s.api, "/pdf/generate/archive", archiveProjectServiceMock, pdfServiceMock, nil)
-
-	resp1 := s.api.Post("/pdf/generate/archive", map[string]any{
-		"url": "existing_template_existing_empty_schema",
-		"input": map[string]any{
-			"variables": "{\"test\": \"some_value\"}",
-			"validate":  true,
-		},
+func (s *TestSuite) Test_Success_Generate_With_Variables_Empty_Schema_200() {
+	resp := s.api.Post("/pdf/generate/url", map[string]any{
+		"url":       "existing_template_existing_empty_schema",
+		"variables": `{"test": "some_value"}`,
 	})
 
-	s.assert.Equal(200, resp1.Code)
-
-	resp2 := s.api.Post("/pdf/generate/archive", map[string]any{
-		"url": "existing_template_existing_empty_schema",
-		"input": map[string]any{
-			"variables": "{\"test\": \"some_value\"}",
-			"validate":  true,
-		},
-	})
-
-	s.assert.Equal(200, resp2.Code)
-
-	// TODO: Figure out because https://github.com/stretchr/testify/issues/944
-	// archiveProjectServiceMock.AssertExpectations(s.T())
-	// pdfServiceMock.AssertExpectations(s.T())
+	s.assert.Equal(200, resp.Code)
 }
 
-func (s *TestSuite) Test_Fail_Generate_PDF_No_Cache_URL_Not_Exists_Returns_404() {
-	archiveProjectServiceMock := new(mocks.ArchiveProjectServiceMock)
-	archiveProjectServiceMock.On("GetProject", mock.Anything).Return()
+func (s *TestSuite) Test_Fail_Generate_No_Url_400() {
+	resp := s.api.Post("/pdf/generate/url", map[string]any{})
 
-	pdfServiceMock := new(mocks.PDFserviceMock)
-	pdfServiceMock.On("Generate", mock.Anything).Return()
+	s.assert.Equal(400, resp.Code)
+	s.assert.Contains(resp.Body.String(), "No url provided")
+}
 
-	archiveurlgen.RegisterOperation(s.api, "/pdf/generate/archive", archiveProjectServiceMock, pdfServiceMock, nil)
-
-	resp := s.api.Post("/pdf/generate/archive", map[string]any{
+func (s *TestSuite) Test_Fail_Generate_Bad_Url_404() {
+	resp := s.api.Post("/pdf/generate/url", map[string]any{
 		"url": "non_existing",
 	})
 
-	// archiveProjectServiceMock.AssertExpectations(s.T())
-	pdfServiceMock.AssertNotCalled(s.T(), "Generate", mock.Anything)
-
 	s.assert.Equal(404, resp.Code)
+	s.assert.Contains(resp.Body.String(), "Archive not found")
 }
 
-func (s *TestSuite) Test_Fail_Generate_PDF_No_Cache_URL_Not_Provided_Returns_400() {
-	archiveProjectServiceMock := new(mocks.ArchiveProjectServiceMock)
-	pdfServiceMock := new(mocks.PDFserviceMock)
-
-	archiveurlgen.RegisterOperation(s.api, "/pdf/generate/archive", archiveProjectServiceMock, pdfServiceMock, nil)
-
-	resp := s.api.Post("/pdf/generate/archive", map[string]any{
-		"wrong": "no_url",
+func (s *TestSuite) Test_Fail_Generate_Validation_And_Variables_Empty_Schema_400() {
+	resp := s.api.Post("/pdf/generate/url", map[string]any{
+		"url":       "existing_template_non_existing_schema",
+		"variables": `{"test": "some_value"}`,
+		"validate":  true,
 	})
 
-	archiveProjectServiceMock.AssertNotCalled(s.T(), "GetProject", mock.Anything)
-	pdfServiceMock.AssertNotCalled(s.T(), "Generate", mock.Anything)
-
 	s.assert.Equal(400, resp.Code)
+	s.assert.Contains(resp.Body.String(), "No json schema found in the archive, please make sure that a json schema exists and it is not empty or disable variables validation")
 }
 
-// func (s *TestSuite) Test_Fail_Generate_PDF_No_Cache_JSONschema_Required_And_NotFound_Returns_400() {
-// 	archiveProjectServiceMock := new(mocks.ArchiveProjectServiceMock)
-// 	pdfServiceMock := new(mocks.PDFserviceMock)
-
-// 	archiveProjectServiceMock.On("GetProject", mock.Anything).Return()
-
-// 	archiveurlgen.RegisterOperation(s.api, "/pdf/generate/archive", archiveProjectServiceMock, pdfServiceMock, nil)
-
-// 	resp := s.api.Post("/pdf/generate/archive", map[string]any{
-// 		"url": "existing_template_non_existing_schema",
-// 		"input": map[string]any{
-// 			"variables": "{\"test\": \"some_value\"}",
-// 			"validate":  true,
-// 		},
-// 	})
-
-// 	// archiveProjectServiceMock.AssertExpectations(s.T())
-// 	// pdfServiceMock.AssertNotCalled(s.T(), "Generate", mock.Anything)
-
-// 	s.assert.Equal(400, resp.Code)
-// }
-
-func (s *TestSuite) Test_Fail_Generate_PDF_No_Cache_Variables_Validation_Fails_Returns_400() {
-	archiveProjectServiceMock := new(mocks.ArchiveProjectServiceMock)
-	archiveProjectServiceMock.On("GetProject", mock.Anything).Return()
-
-	pdfServiceMock := new(mocks.PDFserviceMock)
-
-	archiveurlgen.RegisterOperation(s.api, "/pdf/generate/archive", archiveProjectServiceMock, pdfServiceMock, nil)
-
-	resp := s.api.Post("/pdf/generate/archive", map[string]any{
-		"url": "existing_template_existing_schema",
-		"input": map[string]any{
-			"variables": "{\"test\": \"some_value\"}",
-			"validate":  true,
-		},
+func (s *TestSuite) Test_Fail_Generate_Bad_Variables_400() {
+	resp := s.api.Post("/pdf/generate/url", map[string]any{
+		"url":       "existing_template_existing_schema",
+		"variables": "bad variables",
+		"validate":  true,
 	})
 
-	// archiveProjectServiceMock.AssertExpectations(s.T())
-	pdfServiceMock.AssertNotCalled(s.T(), "Generate", mock.Anything)
+	s.assert.Equal(400, resp.Code)
+	s.assert.Contains(resp.Body.String(), "Failed to parse variables")
+}
+
+func (s *TestSuite) Test_Fail_Generate_Variables_Validation_Fails_400() {
+	resp := s.api.Post("/pdf/generate/url", map[string]any{
+		"url":       "existing_template_existing_schema",
+		"variables": `{"test": "some_value"}`,
+		"validate":  true,
+	})
 
 	s.assert.Equal(400, resp.Code)
+	s.assert.Contains(resp.Body.String(), "Provided variables do not conform to the json schema")
 }
 
 func TestSuccessfulGeneration(t *testing.T) {

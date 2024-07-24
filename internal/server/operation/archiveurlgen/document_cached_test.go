@@ -8,6 +8,7 @@ import (
 	"github.com/atoncetti/combiner/internal/cache"
 	"github.com/atoncetti/combiner/internal/httptool"
 	"github.com/atoncetti/combiner/internal/server/operation/archiveurlgen"
+	"github.com/atoncetti/combiner/internal/service/pdfgenerator"
 	"github.com/atoncetti/combiner/test/mocks"
 	"github.com/danielgtaylor/huma/v2/humatest"
 	"github.com/stretchr/testify/assert"
@@ -25,6 +26,13 @@ type CachedTestSuite struct {
 
 func (s *CachedTestSuite) SetupSuite() {
 	config.Load()
+	mocks.PassPDFgenerator()
+
+	archiveProjectServiceMock := new(mocks.ArchiveProjectServiceMock)
+	archiveProjectServiceMock.On("GetProject", mock.Anything).Return()
+
+	pdfProvider := pdfgenerator.NewHTTPpdfGenerator(config.Config.PDFgeneratorEndpoint)
+
 	cacheInstance, err := cache.New(config.Config.CacheConfig.CacheUrl)
 	if err != nil {
 		s.T().Fatal("failed to create cache")
@@ -32,65 +40,140 @@ func (s *CachedTestSuite) SetupSuite() {
 
 	_, api := humatest.New(s.T())
 
+	archiveurlgen.RegisterOperation(api, "/pdf/generate/url", archiveProjectServiceMock, pdfProvider, cacheInstance)
+
 	s.ctx = context.Background()
 	s.api = api
 	s.cacheInstance = cacheInstance
 	s.assert = assert.New(s.T())
 }
 
-func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_Returns_200() {
-	archiveProjectServiceMock := new(mocks.ArchiveProjectServiceMock)
-	archiveProjectServiceMock.On("GetProject", mock.Anything).Return()
-
-	pdfServiceMock := new(mocks.PDFserviceMock)
-	pdfServiceMock.On("Generate", mock.Anything).Return()
-
-	archiveurlgen.RegisterOperation(s.api, "/pdf/generate/archive", archiveProjectServiceMock, pdfServiceMock, s.cacheInstance)
-
-	resp1 := s.api.Post(
-		"/pdf/generate/archive",
+func (s *CachedTestSuite) Test_Success_Generate_200() {
+	resp := s.api.Post(
+		"/pdf/generate/url",
 		map[string]any{
 			"url": "existing_template_non_existing_schema",
 		})
 
-	s.assert.Equal(200, resp1.Code)
+	s.assert.Equal(200, resp.Code)
 
-	resp2 := s.api.Post(
-		"/pdf/generate/archive",
-		map[string]any{
-			"url": "existing_template_non_existing_schema",
-		})
+	cacheKey, _ := cache.Key([][]byte{[]byte("existing_template_non_existing_schema")})
 
-	s.assert.Equal(200, resp2.Code)
-
-	// TODO: Figure out because https://github.com/stretchr/testify/issues/944
-	// archiveProjectServiceMock.AssertExpectations(s.T())
-	// pdfServiceMock.AssertExpectations(s.T())
-
-	cacheKey, err := cache.Key([][]byte{[]byte("existing_template_non_existing_schema")})
+	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
+	assert.NotEmpty(s.T(), reader)
+
 	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
 }
 
-func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_Different_Headers_Returns_200() {
-	archiveProjectServiceMock := new(mocks.ArchiveProjectServiceMock)
-	archiveProjectServiceMock.On("GetProject", mock.Anything).Return()
+func (s *CachedTestSuite) Test_Success_Generate_With_Variables_200() {
+	variables := `{"title": "this is a title"}`
+	resp := s.api.Post(
+		"/pdf/generate/url",
+		map[string]any{
+			"url":       "existing_template_existing_schema",
+			"variables": variables,
+		},
+	)
 
-	pdfServiceMock := new(mocks.PDFserviceMock)
-	pdfServiceMock.On("Generate", mock.Anything).Return()
+	s.assert.Equal(200, resp.Code)
 
-	archiveurlgen.RegisterOperation(s.api, "/pdf/generate/archive", archiveProjectServiceMock, pdfServiceMock, s.cacheInstance)
+	cacheKey, _ := cache.Key([][]byte{[]byte("existing_template_existing_schema"), []byte(variables)})
 
+	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	if err != nil {
+		s.T().Fatal(err)
+	}
+
+	assert.NotEmpty(s.T(), reader)
+
+	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
+}
+
+func (s *CachedTestSuite) Test_Success_Generate_With_Validation_And_Variables_200() {
+	variables := `{"title": "this is a title"}`
+	resp := s.api.Post(
+		"/pdf/generate/url",
+		map[string]any{
+			"url":       "existing_template_existing_schema",
+			"variables": variables,
+			"validate":  true,
+		},
+	)
+
+	s.assert.Equal(200, resp.Code)
+
+	cacheKey, _ := cache.Key([][]byte{[]byte("existing_template_existing_schema"), []byte(variables)})
+
+	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	if err != nil {
+		s.T().Fatal(err)
+	}
+
+	assert.NotEmpty(s.T(), reader)
+
+	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
+}
+
+func (s *CachedTestSuite) Test_Success_Generate_Use_Cache_200() {
+	headers := map[string][]string{
+		"Authorization": {"Bearer test"},
+		"Content-Type":  {"application/pdf"},
+	}
+	variables := `{"title": "this is a title"}`
+
+	resp1 := s.api.Post(
+		"/pdf/generate/url",
+		map[string]any{
+			"url":       "existing_template_non_existing_schema",
+			"headers":   headers,
+			"variables": variables,
+		})
+
+	s.assert.Equal(200, resp1.Code)
+
+	cacheKey, _ := cache.Key([][]byte{[]byte("existing_template_non_existing_schema"), httptool.FlattenHeaders(headers), []byte(variables)})
+
+	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	if err != nil {
+		s.T().Fatal(err)
+	}
+
+	assert.NotEmpty(s.T(), reader)
+
+	resp2 := s.api.Post(
+		"/pdf/generate/url",
+		map[string]any{
+			"url":       "existing_template_non_existing_schema",
+			"headers":   headers,
+			"variables": variables,
+		})
+
+	s.assert.Equal(200, resp2.Code)
+
+	cacheKey, _ = cache.Key([][]byte{[]byte("existing_template_non_existing_schema"), httptool.FlattenHeaders(headers), []byte(variables)})
+
+	reader, err = s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	if err != nil {
+		s.T().Fatal(err)
+	}
+
+	assert.NotEmpty(s.T(), reader)
+
+	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
+}
+
+func (s *CachedTestSuite) Test_Success_Generate_Different_Headers_200() {
 	headers1 := map[string][]string{
 		"Authorization": {"Bearer test"},
 		"Content-Type":  {"application/pdf"},
 	}
 
 	resp1 := s.api.Post(
-		"/pdf/generate/archive",
+		"/pdf/generate/url",
 		map[string]any{
 			"url":     "existing_template_non_existing_schema",
 			"headers": headers1,
@@ -98,13 +181,22 @@ func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_Different_Headers
 
 	s.assert.Equal(200, resp1.Code)
 
+	cacheKey1, err := cache.Key([][]byte{[]byte("existing_template_non_existing_schema"), httptool.FlattenHeaders(headers1)})
+
+	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey1)
+	if err != nil {
+		s.T().Fatal(err)
+	}
+
+	assert.NotEmpty(s.T(), reader)
+
 	headers2 := map[string][]string{
 		"Authorization": {"Bearer newtest"},
 		"Content-Type":  {"application/pdf"},
 	}
 
 	resp2 := s.api.Post(
-		"/pdf/generate/archive",
+		"/pdf/generate/url",
 		map[string]any{
 			"url":     "existing_template_non_existing_schema",
 			"headers": headers2,
@@ -112,110 +204,142 @@ func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_Different_Headers
 
 	s.assert.Equal(200, resp2.Code)
 
-	// TODO: Figure out because https://github.com/stretchr/testify/issues/944
-	// archiveProjectServiceMock.AssertExpectations(s.T())
-	// pdfServiceMock.AssertExpectations(s.T())
+	cacheKey2, _ := cache.Key([][]byte{[]byte("existing_template_non_existing_schema"), httptool.FlattenHeaders(headers2)})
 
-	cacheKey1, err := cache.Key([][]byte{[]byte("existing_template_non_existing_schema"), httptool.FlattenHeaders(headers1)})
+	reader, err = s.cacheInstance.GetPDF(s.ctx, cacheKey2)
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	cacheKey2, err := cache.Key([][]byte{[]byte("existing_template_non_existing_schema"), httptool.FlattenHeaders(headers1)})
-	if err != nil {
-		s.T().Fatal(err)
-	}
+	assert.NotEmpty(s.T(), reader)
 
 	s.cacheInstance.DeletePDF(s.ctx, cacheKey1)
 	s.cacheInstance.DeletePDF(s.ctx, cacheKey2)
 }
 
-func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_With_Validate_Arguments_Returns_200() {
-	archiveProjectServiceMock := new(mocks.ArchiveProjectServiceMock)
-	archiveProjectServiceMock.On("GetProject", mock.Anything).Return()
-
-	pdfServiceMock := new(mocks.PDFserviceMock)
-	pdfServiceMock.On("Generate", mock.Anything).Return()
-
-	archiveurlgen.RegisterOperation(s.api, "/pdf/generate/archive", archiveProjectServiceMock, pdfServiceMock, s.cacheInstance)
+func (s *CachedTestSuite) Test_Success_Generate_Different_Variables_200() {
+	variables1 := `{"title": "this is a title"}`
 
 	resp1 := s.api.Post(
-		"/pdf/generate/archive",
+		"/pdf/generate/url",
 		map[string]any{
-			"url": "existing_template_existing_schema",
-			"argumentOptions": map[string]any{
-				"variables": "{\"title\": \"this is a title\"}",
-				"validate":  true,
-			},
-		},
-	)
+			"url":       "existing_template_non_existing_schema",
+			"variables": variables1,
+		})
 
 	s.assert.Equal(200, resp1.Code)
+
+	cacheKey1, err := cache.Key([][]byte{[]byte("existing_template_non_existing_schema"), []byte(variables1)})
+
+	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey1)
+	if err != nil {
+		s.T().Fatal(err)
+	}
+
+	assert.NotEmpty(s.T(), reader)
+
+	variables2 := `{"title": "new title"}`
 
 	resp2 := s.api.Post(
-		"/pdf/generate/archive",
+		"/pdf/generate/url",
 		map[string]any{
-			"url": "existing_template_existing_schema",
-			"argumentOptions": map[string]any{
-				"variables": "{\"title\": \"this is a title\"}",
-				"validate":  true,
-			},
-		},
-	)
+			"url":       "existing_template_non_existing_schema",
+			"variables": variables2,
+		})
 
 	s.assert.Equal(200, resp2.Code)
 
-	// TODO: Figure out because https://github.com/stretchr/testify/issues/944
-	// archiveProjectServiceMock.AssertExpectations(s.T())
-	// pdfServiceMock.AssertExpectations(s.T())
+	cacheKey2, _ := cache.Key([][]byte{[]byte("existing_template_non_existing_schema"), []byte(variables2)})
 
-	cacheKey, err := cache.Key([][]byte{[]byte("existing_template_existing_schema")})
+	reader, err = s.cacheInstance.GetPDF(s.ctx, cacheKey2)
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
+	assert.NotEmpty(s.T(), reader)
+
+	s.cacheInstance.DeletePDF(s.ctx, cacheKey1)
+	s.cacheInstance.DeletePDF(s.ctx, cacheKey2)
 }
 
-func (s *CachedTestSuite) Test_Success_Generate_PDF_With_Cache_With_Validate_Arguments_Empty_Schema_Returns_200() {
-	archiveProjectServiceMock := new(mocks.ArchiveProjectServiceMock)
-	archiveProjectServiceMock.On("GetProject", mock.Anything).Return()
-
-	pdfServiceMock := new(mocks.PDFserviceMock)
-	pdfServiceMock.On("Generate", mock.Anything).Return()
-
-	archiveurlgen.RegisterOperation(s.api, "/pdf/generate/archive", archiveProjectServiceMock, pdfServiceMock, s.cacheInstance)
-
-	resp1 := s.api.Post("/pdf/generate/archive", map[string]any{
-		"url": "existing_template_existing_empty_schema",
-		"input": map[string]any{
-			"variables": "{\"test\": \"some_value\"}",
-			"validate":  true,
-		},
+func (s *CachedTestSuite) Test_Fail_Generate_No_Url_400() {
+	resp := s.api.Post("/pdf/generate/url", map[string]any{
+		"variables": `{"test": "some_value"}`,
 	})
 
-	s.assert.Equal(200, resp1.Code)
+	s.assert.Equal(400, resp.Code)
+	s.assert.Contains(resp.Body.String(), "No url provided")
+}
 
-	resp2 := s.api.Post("/pdf/generate/archive", map[string]any{
-		"url": "existing_template_existing_empty_schema",
-		"input": map[string]any{
-			"variables": "{\"test\": \"some_value\"}",
-			"validate":  true,
-		},
+func (s *CachedTestSuite) Test_Fail_Generate_Bad_Url_404() {
+	resp := s.api.Post("/pdf/generate/url", map[string]any{
+		"url":       "non_existing",
+		"variables": `{"test": "some_value"}`,
 	})
 
-	s.assert.Equal(200, resp2.Code)
+	s.assert.Equal(404, resp.Code)
+	s.assert.Contains(resp.Body.String(), "Archive not found")
+}
 
-	// TODO: Figure out because https://github.com/stretchr/testify/issues/944
-	// archiveProjectServiceMock.AssertExpectations(s.T())
-	// pdfServiceMock.AssertExpectations(s.T())
+func (s *CachedTestSuite) Test_Fail_Generate_With_Validation_No_Variables_400() {
+	resp := s.api.Post("/pdf/generate/url", map[string]any{
+		"url":      "existing_template_existing_schema",
+		"validate": true,
+	})
 
-	cacheKey, err := cache.Key([][]byte{[]byte("existing_template_existing_empty_schema")})
+	s.assert.Equal(400, resp.Code)
+	s.assert.Contains(resp.Body.String(), "Provided variables do not conform to the json schema")
+}
+
+func (s *CachedTestSuite) Test_Fail_Generate_With_Validation_And_Variables_Empty_Schema_400() {
+	resp := s.api.Post("/pdf/generate/url", map[string]any{
+		"url":       "existing_template_existing_empty_schema",
+		"variables": `{"test": "some_value"}`,
+		"validate":  true,
+	})
+
+	s.assert.Equal(400, resp.Code)
+	s.assert.Contains(resp.Body.String(), "No json schema found in the archive, please make sure that a json schema exists and it is not empty or disable variables validation")
+
+	cacheKey, _ := cache.Key([][]byte{[]byte("existing_template_existing_empty_schema")})
+
+	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
+	s.assert.Empty(reader)
+}
+
+func (s *CachedTestSuite) Test_Fail_Generate_Bad_Variables_400() {
+	resp := s.api.Post("/pdf/generate/url", map[string]any{
+		"url":       "existing_template_existing_schema",
+		"variables": "bad variables",
+		"validate":  true,
+	})
+
+	s.assert.Equal(400, resp.Code)
+	s.assert.Contains(resp.Body.String(), "Failed to parse variables")
+}
+
+func (s *CachedTestSuite) Test_Fail_Generate_Variables_Validation_Fails_400() {
+	resp := s.api.Post("/pdf/generate/url", map[string]any{
+		"url":       "existing_template_existing_schema",
+		"variables": `{"wrong": "missing!!"}`,
+		"validate":  true,
+	})
+
+	s.assert.Equal(400, resp.Code)
+	s.assert.Contains(resp.Body.String(), "Provided variables do not conform to the json schema")
+
+	cacheKey, _ := cache.Key([][]byte{[]byte("existing_template_existing_schema")})
+
+	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	if err != nil {
+		s.T().Fatal(err)
+	}
+
+	s.assert.Empty(reader)
 }
 
 func TestCached(t *testing.T) {

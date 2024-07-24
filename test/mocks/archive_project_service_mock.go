@@ -16,15 +16,11 @@ type ArchiveProjectServiceMock struct {
 func (m *ArchiveProjectServiceMock) GetProject(ctx context.Context, url string, headers map[string][]string) (service.Project, error) {
 	m.Called(url)
 
-	index, index_size := test.File("index.html")
+	index_html := test.File("index.html")
 
-	schema, schema_size := test.File("schema.json")
+	json_schema := test.File("valid_json_schema/json_schema.json")
 
-	empty_schema, empty_schema_size := test.File("empty_schema.json")
-
-	index_html := service.NewFile("index.html", index, index_size)
-	json_schema := service.NewFile("json_schema.json", schema, schema_size)
-	empty_json_schema := service.NewFile("json_schema.json", empty_schema, empty_schema_size)
+	empty_json_schema := test.File("empty_json_schema/json_schema.json")
 
 	switch url {
 	case "existing_template_non_existing_schema":

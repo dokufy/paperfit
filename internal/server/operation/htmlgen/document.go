@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/atoncetti/combiner/internal/server/schema"
 	"github.com/atoncetti/combiner/internal/service"
-	"github.com/atoncetti/combiner/validation"
+	"github.com/atoncetti/combiner/internal/validation"
 	"github.com/danielgtaylor/huma/v2"
 )
 
@@ -114,18 +115,19 @@ func resolver(pdfService service.PDFserviceGenerator) func(ctx context.Context, 
 			for _, rawFile := range rawFiles {
 				file, err := rawFile.Open()
 				if err != nil {
-					// logger.Logger.Error("failed to open file: " + name)
 					return nil, huma.Error500InternalServerError("Failed to open file", err)
 				}
 
-				buf := make([]byte, rawFile.Size)
-				_, err = file.Read(buf)
-				if err != nil {
-					// logger.Logger.Error("failed while reading file: " + name)
-					return nil, huma.Error500InternalServerError("Failed while reading file", err)
-				}
+				if rawFile.Size > 0 {
+					buf := make([]byte, rawFile.Size)
+					log.Printf("%v", rawFile.Filename)
+					_, err = file.Read(buf)
+					if err != nil {
+						return nil, huma.Error500InternalServerError("Failed while reading file", err)
+					}
 
-				project.AppendFile(name, bytes.NewReader(buf), rawFile.Size)
+					project.AppendFile(name, bytes.NewReader(buf), rawFile.Size)
+				}
 			}
 		}
 
@@ -156,10 +158,12 @@ func resolver(pdfService service.PDFserviceGenerator) func(ctx context.Context, 
 				return nil, huma.Error400BadRequest("No json schema found in the archive, please make sure that a json schema exists and it is not empty or disable variables validation")
 			}
 
-			err := validation.Validate(strings.NewReader(vars), jsonSchema.Content)
+			jsonSchemaContent, err := validation.Validate(strings.NewReader(vars), jsonSchema.Content)
 			if err != nil {
 				return nil, huma.Error400BadRequest("Provided variables do not conform to the json schema")
 			}
+
+			jsonSchema.Content = jsonSchemaContent
 		}
 
 		res, err := pdfService.Generate(&project)

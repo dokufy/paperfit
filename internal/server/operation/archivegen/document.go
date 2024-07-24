@@ -13,7 +13,7 @@ import (
 	"github.com/atoncetti/combiner/internal/cache"
 	"github.com/atoncetti/combiner/internal/server/schema"
 	"github.com/atoncetti/combiner/internal/service"
-	"github.com/atoncetti/combiner/validation"
+	"github.com/atoncetti/combiner/internal/validation"
 	"github.com/danielgtaylor/huma/v2"
 )
 
@@ -168,11 +168,12 @@ func resolver(
 			if jsonSchema == nil || jsonSchema.Size() == 0 {
 				return nil, huma.Error400BadRequest("No json schema found in the archive, please make sure that a json schema exists and it is not empty or disable variables validation")
 			}
-
-			err := validation.Validate(strings.NewReader(vars), jsonSchema.Content)
+			jsonSchemaContent, err := validation.Validate(strings.NewReader(vars), jsonSchema.Content)
 			if err != nil {
 				return nil, huma.Error400BadRequest("Provided variables do not conform to the json schema")
 			}
+
+			jsonSchema.Content = jsonSchemaContent
 		}
 
 		res, err := pdfService.Generate(project)
