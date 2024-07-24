@@ -1,4 +1,4 @@
-module github.com/atoncetti/combiner
+module github.com/dokufy/paperfit
 
 go 1.22.3
 

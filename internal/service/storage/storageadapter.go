@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/atoncetti/combiner/internal/logger"
+	"github.com/dokufy/paperfit/internal/logger"
 	"github.com/eko/gocache/lib/v4/store"
 	_ "go.beyondstorage.io/services/fs/v4"
 	_ "go.beyondstorage.io/services/minio"

@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/atoncetti/combiner/config"
-	"github.com/atoncetti/combiner/internal/service"
+	"github.com/dokufy/paperfit/config"
+	"github.com/dokufy/paperfit/internal/service"
 )
 
 func File(relPath string) service.File {

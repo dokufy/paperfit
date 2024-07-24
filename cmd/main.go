@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/atoncetti/combiner/config"
-	"github.com/atoncetti/combiner/internal/server"
+	"github.com/dokufy/paperfit/config"
+	"github.com/dokufy/paperfit/internal/server"
 )
 
 func main() {

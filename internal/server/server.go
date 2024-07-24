@@ -3,17 +3,17 @@ package server
 import (
 	"net/http"
 
-	"github.com/atoncetti/combiner/config"
-	"github.com/atoncetti/combiner/internal/cache"
-	"github.com/atoncetti/combiner/internal/logger"
-	"github.com/atoncetti/combiner/internal/server/operation/archivegen"
-	"github.com/atoncetti/combiner/internal/server/operation/archiveurlgen"
-	"github.com/atoncetti/combiner/internal/server/operation/htmlgen"
-	"github.com/atoncetti/combiner/internal/service"
-	"github.com/atoncetti/combiner/internal/service/pdfgenerator"
-	"github.com/atoncetti/combiner/internal/service/projectprovider"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
+	"github.com/dokufy/paperfit/config"
+	"github.com/dokufy/paperfit/internal/cache"
+	"github.com/dokufy/paperfit/internal/logger"
+	"github.com/dokufy/paperfit/internal/server/operation/archivegen"
+	"github.com/dokufy/paperfit/internal/server/operation/archiveurlgen"
+	"github.com/dokufy/paperfit/internal/server/operation/htmlgen"
+	"github.com/dokufy/paperfit/internal/service"
+	"github.com/dokufy/paperfit/internal/service/pdfgenerator"
+	"github.com/dokufy/paperfit/internal/service/projectprovider"
 	"github.com/go-chi/chi/v5"
 )
 

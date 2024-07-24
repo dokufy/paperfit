@@ -4,13 +4,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/atoncetti/combiner/config"
-	"github.com/atoncetti/combiner/internal/cache"
-	"github.com/atoncetti/combiner/internal/logger"
-	"github.com/atoncetti/combiner/internal/server"
-	"github.com/atoncetti/combiner/internal/service/pdfgenerator"
-	"github.com/atoncetti/combiner/test/mocks"
 	"github.com/danielgtaylor/huma/v2/humatest"
+	"github.com/dokufy/paperfit/config"
+	"github.com/dokufy/paperfit/internal/cache"
+	"github.com/dokufy/paperfit/internal/logger"
+	"github.com/dokufy/paperfit/internal/server"
+	"github.com/dokufy/paperfit/internal/service/pdfgenerator"
+	"github.com/dokufy/paperfit/test/mocks"
 )
 
 func setupApi(b *testing.B) humatest.TestAPI {

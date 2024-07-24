@@ -9,12 +9,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/atoncetti/combiner/internal/archive"
-	"github.com/atoncetti/combiner/internal/cache"
-	"github.com/atoncetti/combiner/internal/server/schema"
-	"github.com/atoncetti/combiner/internal/service"
-	"github.com/atoncetti/combiner/internal/validation"
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dokufy/paperfit/internal/archive"
+	"github.com/dokufy/paperfit/internal/cache"
+	"github.com/dokufy/paperfit/internal/server/schema"
+	"github.com/dokufy/paperfit/internal/service"
+	"github.com/dokufy/paperfit/internal/validation"
 )
 
 func RegisterOperation(api huma.API, path string, pdfService service.PDFserviceGenerator, cacheInstance *cache.Cache) {

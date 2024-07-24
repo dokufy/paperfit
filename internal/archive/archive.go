@@ -7,7 +7,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/atoncetti/combiner/internal/service"
+	"github.com/dokufy/paperfit/internal/service"
 	"github.com/mholt/archiver/v4"
 )
 

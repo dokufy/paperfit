@@ -1,8 +1,8 @@
 package mocks
 
 import (
-	"github.com/atoncetti/combiner/config"
-	"github.com/atoncetti/combiner/test"
+	"github.com/dokufy/paperfit/config"
+	"github.com/dokufy/paperfit/test"
 	"github.com/h2non/gock"
 )
 

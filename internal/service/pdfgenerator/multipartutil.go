@@ -5,7 +5,7 @@ import (
 	"io"
 	"mime/multipart"
 
-	"github.com/atoncetti/combiner/internal/service"
+	"github.com/dokufy/paperfit/internal/service"
 )
 
 type Multipart struct {

@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/atoncetti/combiner/internal/service"
+	"github.com/dokufy/paperfit/internal/service"
 )
 
 type HTTPpdfGenerator struct {

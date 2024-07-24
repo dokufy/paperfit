@@ -3,9 +3,9 @@ package mocks
 import (
 	"context"
 
-	"github.com/atoncetti/combiner/internal/service"
-	"github.com/atoncetti/combiner/internal/service/projectprovider"
-	"github.com/atoncetti/combiner/test"
+	"github.com/dokufy/paperfit/internal/service"
+	"github.com/dokufy/paperfit/internal/service/projectprovider"
+	"github.com/dokufy/paperfit/test"
 	"github.com/stretchr/testify/mock"
 )
 

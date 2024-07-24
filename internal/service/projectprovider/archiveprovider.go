@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"path"
 
-	"github.com/atoncetti/combiner/internal/archive"
-	"github.com/atoncetti/combiner/internal/cache"
-	"github.com/atoncetti/combiner/internal/httptool"
-	"github.com/atoncetti/combiner/internal/logger"
-	"github.com/atoncetti/combiner/internal/service"
+	"github.com/dokufy/paperfit/internal/archive"
+	"github.com/dokufy/paperfit/internal/cache"
+	"github.com/dokufy/paperfit/internal/httptool"
+	"github.com/dokufy/paperfit/internal/logger"
+	"github.com/dokufy/paperfit/internal/service"
 )
 
 type ArchiveProjectServiceProvider interface {

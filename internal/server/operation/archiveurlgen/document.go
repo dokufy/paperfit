@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/atoncetti/combiner/internal/cache"
-	"github.com/atoncetti/combiner/internal/httptool"
-	"github.com/atoncetti/combiner/internal/server/schema"
-	"github.com/atoncetti/combiner/internal/service"
-	"github.com/atoncetti/combiner/internal/service/projectprovider"
-	"github.com/atoncetti/combiner/internal/validation"
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dokufy/paperfit/internal/cache"
+	"github.com/dokufy/paperfit/internal/httptool"
+	"github.com/dokufy/paperfit/internal/server/schema"
+	"github.com/dokufy/paperfit/internal/service"
+	"github.com/dokufy/paperfit/internal/service/projectprovider"
+	"github.com/dokufy/paperfit/internal/validation"
 )
 
 func RegisterOperation(api huma.API, path string, archiveProjectProvider projectprovider.ArchiveProjectServiceProvider, pdfService service.PDFserviceGenerator, cacheInstance *cache.Cache) {

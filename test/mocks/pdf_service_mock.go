@@ -1,7 +1,7 @@
 package mocks
 
 import (
-	"github.com/atoncetti/combiner/internal/service"
+	"github.com/dokufy/paperfit/internal/service"
 	"github.com/stretchr/testify/mock"
 )
 

@@ -8,9 +8,9 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/atoncetti/combiner/internal/encryption"
-	"github.com/atoncetti/combiner/internal/logger"
-	"github.com/atoncetti/combiner/internal/service/storage"
+	"github.com/dokufy/paperfit/internal/encryption"
+	"github.com/dokufy/paperfit/internal/logger"
+	"github.com/dokufy/paperfit/internal/service/storage"
 	"github.com/eko/gocache/lib/v4/store"
 )
 
