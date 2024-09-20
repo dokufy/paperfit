@@ -10,9 +10,14 @@ import (
 	"github.com/dokufy/paperfit/internal/server"
 	"github.com/dokufy/paperfit/test"
 	"github.com/dokufy/paperfit/test/mocks"
+	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
+
+var archiveUrlNonCachedTestHeader = map[string]string{
+	"Content-Type": echo.MIMEApplicationJSON,
+}
 
 type ArchiveUrlNonCachedTestSuite struct {
 	suite.Suite
@@ -49,7 +54,7 @@ func (s *ArchiveUrlNonCachedTestSuite) Test_Success_Generate_200() {
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlNonCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -66,7 +71,7 @@ func (s *ArchiveUrlNonCachedTestSuite) Test_Success_Generate_With_Variables_200(
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlNonCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -88,7 +93,7 @@ func (s *ArchiveUrlNonCachedTestSuite) Test_Generate_With_Validation_And_Variabl
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlNonCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -111,7 +116,7 @@ func (s *ArchiveUrlNonCachedTestSuite) Test_Success_Generate_With_Variables_Empt
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlNonCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -131,7 +136,7 @@ func (s *ArchiveUrlNonCachedTestSuite) Test_Success_Generate_With_Variables_Empt
 func (s *ArchiveUrlNonCachedTestSuite) Test_Fail_Generate_No_Url_400() {
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlNonCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{},
@@ -147,7 +152,7 @@ func (s *ArchiveUrlNonCachedTestSuite) Test_Fail_Generate_Bad_Url_404() {
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlNonCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{"url": mocks.ArchiveNotExistingMockEndpoint.Url},
@@ -163,7 +168,7 @@ func (s *ArchiveUrlNonCachedTestSuite) Test_Fail_Generate_Validation_And_Variabl
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlNonCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -187,7 +192,7 @@ func (s *ArchiveUrlNonCachedTestSuite) Test_Fail_Generate_Variables_Validation_F
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlNonCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -209,7 +214,7 @@ func (s *ArchiveUrlNonCachedTestSuite) Test_Fail_Generate_Bad_Variables_400() {
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlNonCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{

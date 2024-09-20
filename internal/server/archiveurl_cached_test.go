@@ -25,7 +25,7 @@ type ArchiveUrlCachedTestSuite struct {
 	assert        *assert.Assertions
 }
 
-var applicationJsonHeader = map[string]string{
+var archiveUrlCachedTestHeader = map[string]string{
 	"Content-Type": echo.MIMEApplicationJSON,
 }
 
@@ -58,7 +58,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_200() {
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -89,7 +89,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_With_Variables_200() {
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -123,7 +123,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_With_Validation_And_Va
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -162,7 +162,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Use_Cache_200() {
 
 	resp1 := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -189,7 +189,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Use_Cache_200() {
 
 	resp2 := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -205,8 +205,6 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Use_Cache_200() {
 
 	s.assert.Equal(http.StatusOK, resp2.StatusCode)
 
-	cacheKey, _ = cache.Key(mocks.ArchiveWithJsonSchemaMockEndpoint.Url, httptool.FlattenHeaders(&additionalHeaders), string(json))
-
 	reader, err = s.cacheInstance.GetPDF(s.ctx, cacheKey)
 	if err != nil {
 		s.T().Fatal(err)
@@ -214,6 +212,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Use_Cache_200() {
 
 	assert.NotEmpty(s.T(), reader)
 
+	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
 	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
 }
 
@@ -227,7 +226,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Different_Headers_200(
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -255,7 +254,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Different_Headers_200(
 
 	resp = test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -288,7 +287,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Different_Variables_20
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -316,7 +315,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Different_Variables_20
 
 	resp = test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -348,7 +347,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Fail_Generate_No_Url_400() {
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -370,7 +369,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Fail_Generate_Bad_Url_404() {
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -391,7 +390,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Fail_Generate_With_Validation_No_Variab
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -414,7 +413,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Fail_Generate_With_Validation_And_Varia
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -445,7 +444,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Fail_Generate_Bad_Variables_400() {
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{
@@ -469,7 +468,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Fail_Generate_Variables_Validation_Fail
 
 	resp := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
-		applicationJsonHeader,
+		archiveUrlCachedTestHeader,
 		test.PrepareBody(
 			s.T(),
 			map[string]any{

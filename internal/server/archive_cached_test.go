@@ -118,11 +118,14 @@ func (s *ArchiveCachedTestSuite) Test_Success_Generate_With_Variables_200() {
 
 func (s *ArchiveCachedTestSuite) Test_Success_Generate_With_Validation_And_Variables_200() {
 	file := test.File("archive/valid/with_json_schema.tar.gz")
+	variables := map[string]string{"title": "this is a title"}
+	json, _ := json.Marshal(variables)
+
 	multipart, _ := pdfgenerator.MultipartForm(
 		"file",
 		[]*service.File{&file},
 		&map[string]string{
-			"input": `{"variables": {"title": "this is a title"}, "validate": true}`,
+			"input": fmt.Sprintf(`{"variables": %s, "validate": true}`, string(json)),
 		},
 	)
 
@@ -136,18 +139,21 @@ func (s *ArchiveCachedTestSuite) Test_Success_Generate_With_Validation_And_Varia
 
 	s.assert.Equal(http.StatusOK, resp.StatusCode)
 
-	cacheKey, _ := cache.Key(file.Name())
+	cacheKey, _ := cache.Key(file.Name(), string(json))
 
 	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
 }
 
 func (s *ArchiveCachedTestSuite) Test_Success_Generate_With_Variables_Empty_Schema_200() {
 	file := test.File("archive/valid/with_empty_json_schema.tar.gz")
+	variables := map[string]string{"title": "this is a title"}
+	json, _ := json.Marshal(variables)
+
 	multipart, _ := pdfgenerator.MultipartForm(
 		"file",
 		[]*service.File{&file},
 		&map[string]string{
-			"input": `{"variables": {"title": "this is a title"}}`,
+			"input": fmt.Sprintf(`{"variables": %s}`, string(json)),
 		},
 	)
 
@@ -160,6 +166,10 @@ func (s *ArchiveCachedTestSuite) Test_Success_Generate_With_Variables_Empty_Sche
 	)
 
 	s.assert.Equal(http.StatusOK, resp.StatusCode)
+
+	cacheKey, _ := cache.Key(file.Name(), string(json))
+
+	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
 }
 
 func (s *ArchiveCachedTestSuite) Test_Success_Generate_Use_Cache_200() {
