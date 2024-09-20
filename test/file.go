@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"code.sajari.com/docconv/v2"
 	"github.com/dokufy/paperfit/config"
 	"github.com/dokufy/paperfit/internal/service"
 )
@@ -31,4 +32,13 @@ func FilePath(relPath string) string {
 	config.Load()
 
 	return filepath.Join(config.Config.BasePath, "test/files", relPath)
+}
+
+func PdfToString(pdf io.Reader) string {
+	res, _, err := docconv.ConvertPDF(pdf)
+	if err != nil {
+		panic(err)
+	}
+
+	return res
 }

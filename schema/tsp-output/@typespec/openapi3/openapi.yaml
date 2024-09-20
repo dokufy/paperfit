@@ -1,0 +1,267 @@
+openapi: 3.0.0
+info:
+  title: paperfit
+  version: 0.0.0
+tags:
+  - name: Generate from archive
+  - name: Generate from archive url
+  - name: Generate from HTML
+paths:
+  /pdf/from/archive/file:
+    post:
+      tags:
+        - Generate from archive
+      operationId: createDocumentFromArchive
+      summary: Create document from archive
+      description: |-
+        Takes an archive containing a static HTML project
+        consisting of at least a <b>index.html</b> file and optional variables
+        to be combined during PDF generation.<br />
+        The variables are available as global variables to
+        js scripts defined in the project.<br />
+        Variables can be validated with a <b>json_schema.json</b>
+        file contained in the archive.<br />
+        The generated PDF is cached to improve performance,
+        but the cache is cleared when the archive field name or variables change.<br />
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: string
+                format: byte
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '429':
+          description: Client error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnknownError'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DocumentArchiveInputMultiPart'
+  /pdf/from/archive/url:
+    post:
+      tags:
+        - Generate from archive url
+      operationId: createDocumentFromArchiveUrl
+      summary: Create document from archive url
+      description: |-
+        Fetches an archive at the given url containing a static HTML project
+        consisting of at least a <b>index.html</b> file and optional variables
+        to be combined during PDF generation.<br />
+        You can pass additional <i>headers</i> that will be used when fetching the archive,
+        for example, in case the request needs to authenticate to download.<br />
+        The variables are available as global variables to
+        js scripts defined in the project.<br />
+        Variables can be validated with a <b>json_schema.json</b>
+        file contained in the archive.<br />
+        The generated PDF and archive are cached to improve performance,
+        but the cache is cleared when the archive url, variables or headers change.
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: string
+                format: byte
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '429':
+          description: Client error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnknownError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentArchiveUrlInput'
+  /pdf/from/html/file:
+    post:
+      tags:
+        - Generate from HTML
+      operationId: createDocumentFromFile
+      summary: Create document from file
+      description: |-
+        Takes static HTML project files consisting of 
+        at least a index.html file and optional variables
+        to be combined during PDF generation.
+        The variables are available as global variables to
+        js scripts defined in the project.
+        Variables can be validated with a json_schema.json
+        file present in the archive.
+        No caching is performed for this request.
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: string
+                format: byte
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '429':
+          description: Client error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnknownError'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DocumentFileInputMultiPart'
+security:
+  - BearerAuth: []
+components:
+  schemas:
+    DocumentArchiveInputMultiPart:
+      type: object
+      required:
+        - file
+      properties:
+        input:
+          $ref: '#/components/schemas/Input'
+        file:
+          type: string
+          format: binary
+    DocumentArchiveUrlInput:
+      type: object
+      required:
+        - input
+        - url
+      properties:
+        additionalHeaders:
+          type: object
+          additionalProperties:
+            type: string
+        input:
+          $ref: '#/components/schemas/Input'
+        url:
+          type: string
+    DocumentFileInputMultiPart:
+      type: object
+      required:
+        - input
+        - files
+      properties:
+        input:
+          $ref: '#/components/schemas/Input'
+        files:
+          type: array
+          items:
+            type: string
+            format: binary
+    Input:
+      type: object
+      required:
+        - validate
+        - variables
+      properties:
+        validate:
+          type: boolean
+        variables:
+          type: object
+          additionalProperties: {}
+    RateLimitError:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+      description: Rate limit exceeded
+    UnauthorizedError:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+      description: Unauthorized error
+    UnknownError:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+      description: Unknown error
+    ValidationError:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+      description: Bad request
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+servers:
+  - url: http://localhost:3000
+    description: Local Server
+    variables: {}

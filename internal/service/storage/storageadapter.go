@@ -71,7 +71,7 @@ func (s *StorageAdapter) Set(ctx context.Context, key any, value any, options ..
 
 	_, err := s.store.WriteWithContext(ctx, key.(string), value.(io.Reader), opts.Cost)
 	if err != nil {
-		s.logger.Error("failed to write key: %v", key, err)
+		s.logger.Error("failed to write key", key, err)
 		return err
 	}
 

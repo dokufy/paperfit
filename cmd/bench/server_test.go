@@ -4,102 +4,122 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/danielgtaylor/huma/v2/humatest"
 	"github.com/dokufy/paperfit/config"
-	"github.com/dokufy/paperfit/internal/cache"
-	"github.com/dokufy/paperfit/internal/logger"
 	"github.com/dokufy/paperfit/internal/server"
 	"github.com/dokufy/paperfit/internal/service/pdfgenerator"
+	"github.com/dokufy/paperfit/test"
 	"github.com/dokufy/paperfit/test/mocks"
 )
 
-func setupApi(b *testing.B) humatest.TestAPI {
-	logger := logger.New()
-	cacheInstance, err := cache.New(config.Config.CacheConfig.CacheUrl, nil)
+func setupServer(b *testing.B) *server.Server {
+	config.Load()
+	mocks.PassPDFgenerator()
+	mocks.PassPath("/pdf/from/html/file")
+
+	server, err := server.New()
 	if err != nil {
-		b.Fatal("failed to create cache")
+		b.Fatal(err)
 	}
 
-	_, api := humatest.New(b)
-	server.AddRoutes(api, nil, cacheInstance, &logger)
+	go server.Start(config.Config.ServerPort)
 
-	return api
+	return server
 }
 
-func BenchmarkExplicitPdfGeneration_300k_characters(b *testing.B) {
-	mocks.PassPDFgenerator()
+// func BenchmarkExplicitPdfGeneration_300k_characters(b *testing.B) {
+// 	contentCharacters := 300000
 
-	contentCharacters := 300000
+// 	server := setupServer(b)
+// 	defer server.Stop()
 
-	api := setupApi(b)
+// 	project := mocks.ProjectMock(createStringSizeN(contentCharacters))
+
+// 	for i := 0; i < b.N; i++ {
+// 		multipart, err := pdfgenerator.MultipartForm("files", project.GetFiles(), nil)
+// 		if err != nil {
+// 			b.Fatal(err)
+// 		}
+
+// 		test.Post(
+// 			test.FullURL("/pdf/from/html/file"),
+// 			map[string]string{
+// 				"Content-Type": multipart.FormDataContentType(),
+// 			},
+// 			multipart.Body(),
+// 		)
+// 	}
+// }
+
+// func BenchmarkExplicitPdfGeneration_1M_characters(b *testing.B) {
+// 	contentCharacters := 10000000
+
+// 	server := setupServer(b)
+// 	defer server.Stop()
+
+// 	project := mocks.ProjectMock(createStringSizeN(contentCharacters))
+
+// 	for i := 0; i < b.N; i++ {
+// 		multipart, err := pdfgenerator.MultipartForm("files", project.GetFiles(), nil)
+// 		if err != nil {
+// 			b.Fatal(err)
+// 		}
+
+// 		test.Post(
+// 			test.FullURL("/pdf/from/html/file"),
+// 			map[string]string{
+// 				"Content-Type": multipart.FormDataContentType(),
+// 			},
+// 			multipart.Body(),
+// 		)
+// 	}
+
+// }
+
+func BenchmarkExplicitPdfGeneration_10M_characters(b *testing.B) {
+	contentCharacters := 10000000
+
+	server := setupServer(b)
+	defer server.Stop()
 
 	project := mocks.ProjectMock(createStringSizeN(contentCharacters))
 
 	for i := 0; i < b.N; i++ {
-		multipart, err := pdfgenerator.MultipartForm(project.GetFiles(), nil)
+		multipart, err := pdfgenerator.MultipartForm("files", project.GetFiles(), nil)
 		if err != nil {
 			b.Fatal(err)
 		}
 
-		api.Post("/pdf/generate/html", "Content-type: "+multipart.FormDataContentType(), multipart.Body())
+		test.Post(
+			test.FullURL("/pdf/from/html/file"),
+			map[string]string{
+				"Content-Type": multipart.FormDataContentType(),
+			},
+			multipart.Body(),
+		)
 	}
 }
 
-// func BenchmarkExplicitPdfGeneration_1M_characters(b *testing.B) {
-// 	mocks.PassPDFgenerator()
-
-// 	contentCharacters := 10000000
-
-// 	api := setupApi(b)
-
-// 	project := mocks.ProjectMock(createStringSizeN(contentCharacters))
-
-// 	for i := 0; i < b.N; i++ {
-// 		multipart, err := pdfgenerator.MultipartForm(project.GetFiles(), nil)
-// 		if err != nil {
-// 			b.Fatal(err)
-// 		}
-
-// 		api.Post("/pdf/generate/html", "Content-type: "+multipart.FormDataContentType(), multipart.Body())
-// 	}
-
-// }
-
-// func BenchmarkExplicitPdfGeneration_10M_characters(b *testing.B) {
-// 	mocks.PassPDFgenerator()
-
-// 	contentCharacters := 10000000
-
-// 	api := setupApi(b)
-
-// 	project := mocks.ProjectMock(createStringSizeN(contentCharacters))
-
-// 	for i := 0; i < b.N; i++ {
-// 		multipart, err := pdfgenerator.MultipartForm(project.GetFiles(), nil)
-// 		if err != nil {
-// 			b.Fatal(err)
-// 		}
-
-// 		api.Post("/pdf/generate/html", "Content-type: "+multipart.FormDataContentType(), multipart.Body())
-// 	}
-// }
-
 // func BenchmarkExplicitPdfGeneration_20M_characters(b *testing.B) {
-// 	mocks.PassPDFgenerator()
-
 // 	contentCharacters := 20000000
 
-// 	api := setupApi(b)
+// 	server := setupServer(b)
+// 	defer server.Stop()
 
 // 	project := mocks.ProjectMock(createStringSizeN(contentCharacters))
 
 // 	for i := 0; i < b.N; i++ {
-// 		multipart, err := pdfgenerator.MultipartForm(project.GetFiles(), nil)
+// 		multipart, err := pdfgenerator.MultipartForm("files", project.GetFiles(), nil)
 // 		if err != nil {
 // 			b.Fatal(err)
 // 		}
 
-// 		api.Post("/pdf/generate/html", "Content-type: "+multipart.FormDataContentType(), multipart.Body())
+// 		test.Post(
+// 			test.FullURL("/pdf/from/html/file"),
+// 			map[string]string{
+// 				"Content-Type": multipart.FormDataContentType(),
+// 			},
+// 			multipart.Body(),
+// 		)
 // 	}
 // }
 

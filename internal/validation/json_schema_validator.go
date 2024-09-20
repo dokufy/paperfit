@@ -3,11 +3,12 @@ package validation
 import (
 	"bytes"
 	"io"
+	"strings"
 
 	"github.com/santhosh-tekuri/jsonschema"
 )
 
-func Validate(data io.Reader, schema io.Reader) (io.Reader, error) {
+func Validate(json string, schema io.Reader) (io.Reader, error) {
 	var buf bytes.Buffer
 	tee := io.TeeReader(schema, &buf)
 	c := jsonschema.NewCompiler()
@@ -22,5 +23,7 @@ func Validate(data io.Reader, schema io.Reader) (io.Reader, error) {
 		return nil, err
 	}
 
-	return &buf, sch.Validate(data)
+	r := strings.NewReader(string(json))
+
+	return &buf, sch.Validate(r)
 }

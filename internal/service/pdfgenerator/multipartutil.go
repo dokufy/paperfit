@@ -13,13 +13,13 @@ type Multipart struct {
 	writer *multipart.Writer
 }
 
-func MultipartForm(files []*service.File, fields *map[string]string) (*Multipart, error) {
+func MultipartForm(fieldName string, files []*service.File, fields *map[string]string) (*Multipart, error) {
 	var (
 		buf = new(bytes.Buffer)
 		w   = multipart.NewWriter(buf)
 	)
 
-	err := addFilesToMultipart(w, files)
+	err := addFilesToMultipart(w, fieldName, files)
 	if err != nil {
 		return nil, err
 	}
@@ -44,10 +44,10 @@ func (m *Multipart) FormDataContentType() string {
 	return m.writer.FormDataContentType()
 }
 
-func addFilesToMultipart(multipartWriter *multipart.Writer, files []*service.File) error {
+func addFilesToMultipart(multipartWriter *multipart.Writer, fieldName string, files []*service.File) error {
 	for _, file := range files {
 		if file != nil {
-			part, err := multipartWriter.CreateFormFile(file.Name(), file.Name())
+			part, err := multipartWriter.CreateFormFile(fieldName, file.Name())
 			if err != nil {
 				return err
 			}

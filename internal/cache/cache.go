@@ -1,12 +1,12 @@
 package cache
 
 import (
-	"bytes"
 	"context"
 	"crypto"
 	"encoding/base64"
 	"io"
 	"path/filepath"
+	"strings"
 
 	"github.com/dokufy/paperfit/internal/encryption"
 	"github.com/dokufy/paperfit/internal/logger"
@@ -92,11 +92,11 @@ func (r *Cache) DeletePDF(ctx context.Context, key string) error {
 	return delete(ctx, r, key, "pdf")
 }
 
-func Key(keys [][]byte) (string, error) {
+func Key(keys ...string) (string, error) {
 	hash := crypto.SHA1.New()
-	compositeKey := bytes.Join(keys, []byte{})
+	compositeKey := strings.Join(keys, "")
 
-	_, err := hash.Write(compositeKey)
+	_, err := hash.Write([]byte(compositeKey))
 	if err != nil {
 		return "", err
 	}

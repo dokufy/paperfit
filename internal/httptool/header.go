@@ -1,15 +1,18 @@
 package httptool
 
-func FlattenHeaders(headers map[string][]string) []byte {
-	flattened := make([]byte, 0)
+import "strings"
 
-	for key, values := range headers {
-		flattened = append(flattened, []byte(key)...)
-
-		for _, value := range values {
-			flattened = append(flattened, []byte(value)...)
-		}
+func FlattenHeaders(headers *map[string]string) string {
+	if headers == nil {
+		return ""
 	}
 
-	return flattened
+	builder := strings.Builder{}
+
+	for key, value := range *headers {
+		builder.WriteString(key)
+		builder.WriteString(value)
+	}
+
+	return builder.String()
 }

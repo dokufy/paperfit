@@ -1,0 +1,13 @@
+version: "3"
+
+tasks:
+  setup:
+    desc: install dependencies
+    cmds:
+      - npm ci
+      - npx tsp install
+  gen:
+    desc: Generate OpenAPI yml
+    cmds:
+      - npx tsp compile ./src/main.tsp
+      - oapi-codegen --config=codegenconfig.yml ./tsp-output/@typespec/openapi3/openapi.yaml

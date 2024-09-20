@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"io"
 )
 
 var (
@@ -11,5 +12,5 @@ var (
 )
 
 type PDFserviceGenerator interface {
-	Generate(project *Project) ([]byte, error)
+	Generate(project *Project) (io.Reader, int64, error)
 }

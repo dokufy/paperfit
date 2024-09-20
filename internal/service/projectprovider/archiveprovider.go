@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"path"
+	"strings"
 
 	"github.com/dokufy/paperfit/internal/archive"
 	"github.com/dokufy/paperfit/internal/cache"
@@ -14,7 +15,7 @@ import (
 )
 
 type ArchiveProjectServiceProvider interface {
-	GetProject(ctx context.Context, url string, headers map[string][]string) (service.Project, error)
+	GetProject(ctx context.Context, url string, headers *map[string]string) (service.Project, error)
 }
 
 type ArchiveProjectProvider struct {
@@ -45,11 +46,11 @@ func WithCache(cache cache.Cache) ArchiveProjectProviderOptions {
 	}
 }
 
-func (p *ArchiveProjectProvider) GetProject(ctx context.Context, url string, headers map[string][]string) (service.Project, error) {
+func (p *ArchiveProjectProvider) GetProject(ctx context.Context, url string, headers *map[string]string) (service.Project, error) {
 	var archiveName string
 	var rawArchive io.Reader
 
-	cacheKey, err := cache.Key([][]byte{[]byte(url), httptool.FlattenHeaders(headers)})
+	cacheKey, err := cache.Key(url, httptool.FlattenHeaders(headers))
 	if err != nil {
 		return service.Project{}, err
 	}
@@ -74,11 +75,15 @@ func (p *ArchiveProjectProvider) GetProject(ctx context.Context, url string, hea
 			return service.Project{}, err
 		}
 
-		req.Header = headers
+		req.Header = buildHeader(headers)
 
 		res, err := client.Do(req)
 		if err != nil {
 			return service.Project{}, err
+		}
+
+		if res.StatusCode == http.StatusNotFound {
+			return service.Project{}, &RequestError{StatusCode: 404, Message: "archive not found"}
 		}
 
 		archiveName = path.Base(url)
@@ -104,4 +109,18 @@ func (p *ArchiveProjectProvider) GetProject(ctx context.Context, url string, hea
 	}
 
 	return project, nil
+}
+
+func buildHeader(headers *map[string]string) map[string][]string {
+	r := make(map[string][]string)
+
+	if headers == nil {
+		return r
+	}
+
+	for k, v := range *headers {
+		r[k] = strings.Split(v, ",")
+	}
+
+	return r
 }

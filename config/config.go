@@ -2,13 +2,18 @@ package config
 
 import (
 	"log"
+	"log/slog"
 	"os"
+	"strconv"
+	"strings"
 )
 
 type EnvConfig struct {
 	BasePath string
 
-	ServerRESTPort string
+	ServerPort           string
+	WhitelistOrigins     []string
+	MaxRequestsPerSecond float64
 
 	PDFgeneratorEndpoint string
 
@@ -23,9 +28,14 @@ type CacheConfig struct {
 }
 
 func Load() {
+	defaultWhitelistOrigins := "*"
+	defaultMaxRequestsPerSecond := "20"
+
 	Config = EnvConfig{
 		BasePath:             FetchEnv("BASE_PATH"),
-		ServerRESTPort:       FetchEnv("SERVER_REST_PORT"),
+		ServerPort:           FetchEnv("SERVER_PORT"),
+		WhitelistOrigins:     strings.Fields(*GetEnv("WHITELIST_ORIGINS", &defaultWhitelistOrigins)),
+		MaxRequestsPerSecond: stringToFloat64(*GetEnv("MAX_REQUESTS_PER_SECOND", &defaultMaxRequestsPerSecond)),
 		PDFgeneratorEndpoint: FetchEnv("PDF_GENERATOR_ENDPOINT"),
 		CacheConfig:          CreateCacheConfig(),
 	}
@@ -33,7 +43,7 @@ func Load() {
 
 func CreateCacheConfig() *CacheConfig {
 	cacheUrl := GetEnv("CACHE_URL", nil)
-	if cacheUrl == nil {
+	if cacheUrl == nil || *cacheUrl == "" {
 		return nil
 	}
 
@@ -61,4 +71,13 @@ func GetEnv(key string, def *string) *string {
 	}
 
 	return &value
+}
+
+func stringToFloat64(value string) float64 {
+	i, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		slog.Default().Error("Cannot convert value to float.", "value", value, "error", err)
+	}
+
+	return i
 }

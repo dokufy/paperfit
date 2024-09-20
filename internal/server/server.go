@@ -1,32 +1,65 @@
 package server
 
 import (
-	"net/http"
+	"encoding/json"
+	"errors"
+	"strconv"
 
-	"github.com/danielgtaylor/huma/v2"
-	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/dokufy/paperfit/config"
+	"github.com/dokufy/paperfit/internal/apigen"
 	"github.com/dokufy/paperfit/internal/cache"
 	"github.com/dokufy/paperfit/internal/logger"
-	"github.com/dokufy/paperfit/internal/server/operation/archivegen"
-	"github.com/dokufy/paperfit/internal/server/operation/archiveurlgen"
-	"github.com/dokufy/paperfit/internal/server/operation/htmlgen"
 	"github.com/dokufy/paperfit/internal/service"
 	"github.com/dokufy/paperfit/internal/service/pdfgenerator"
 	"github.com/dokufy/paperfit/internal/service/projectprovider"
-	"github.com/go-chi/chi/v5"
+	"github.com/getkin/kin-openapi/openapi3filter"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+
+	// oapiMiddleware "github.com/oapi-codegen/echo-middleware"
+	"golang.org/x/time/rate"
 )
 
-func New(port string) {
+var (
+	ErrBadRequest         = errors.New("bad request")
+	ErrServiceUnavailable = errors.New("service unavailable")
+
+	ErrInvalidInputFormat = errors.New("invalid input format")
+	ErrBadVariables       = errors.New("provided variables do not conform to the json schema")
+	ErrInvalidVariables   = errors.New("invalid variables format")
+
+	ErrFailedExtractingArchive = errors.New("failed while extracting archive")
+
+	ErrNoSchemaFile = errors.New("no json schema found in the archive, please make sure that a json schema exists and it is not empty or disable variables validation")
+
+	ErrFailedCreatingCacheKey = errors.New("failed to create cache key")
+	ErrFailedWritingCache     = errors.New("failed to write cache")
+	ErrFailedReadingCache     = errors.New("failed to read cache")
+
+	ErrFailedWritingResponse = errors.New("unexpected error when writing response")
+	ErrFailedCleanupArchive  = errors.New("failed to cleanup existing archive")
+
+	ErrFailedGeneratingPdf = errors.New("failed to generate pdf")
+)
+
+type Server struct {
+	cacheInstance          *cache.Cache
+	archiveProjectProvider projectprovider.ArchiveProjectServiceProvider
+	pdfService             service.PDFserviceGenerator
+	echoInstance           *echo.Echo
+	logger                 logger.Logger
+}
+
+func New() (*Server, error) {
 	config.Load()
+	logger.Initialize()
 
-	logger := logger.New()
-
-	httpPDFprovider := pdfgenerator.NewHTTPpdfGenerator(config.Config.PDFgeneratorEndpoint)
+	e := echo.New()
+	e.HideBanner = true
 
 	var c *cache.Cache
 	if config.Config.CacheConfig != nil {
-		opts := []cache.CacherOptions{cache.WithLogger(&logger)}
+		opts := []cache.CacherOptions{cache.WithLogger(&logger.Log)}
 
 		if config.Config.CacheConfig.EncryptionKey != nil {
 			opts = append(opts, cache.WithEncryption(*config.Config.CacheConfig.EncryptionKey))
@@ -34,39 +67,108 @@ func New(port string) {
 
 		cache, err := cache.New(config.Config.CacheConfig.CacheUrl, opts...)
 		if err != nil {
-			logger.Error("Failed to create cache", err)
+			logger.Log.Error("Failed to create cache", err)
 			panic("failed to create cache")
 		}
 
 		c = cache
 	}
 
-	router := chi.NewMux()
-	api := humachi.New(router, huma.DefaultConfig("paperfit API", "0.1.0"))
-
-	AddRoutes(api, httpPDFprovider, c, &logger)
-
-	if err := http.ListenAndServe("localhost:"+port, router); err != nil {
-		panic("failed to start server")
-	}
-
-	logger.Info("listening on localhost:" + port)
-}
-
-func AddRoutes(api huma.API, pdfService service.PDFserviceGenerator, cache *cache.Cache, logger *logger.Logger) {
 	opts := []projectprovider.ArchiveProjectProviderOptions{}
 
-	if cache != nil {
-		opts = append(opts, projectprovider.WithCache(*cache))
+	if c != nil {
+		opts = append(opts, projectprovider.WithCache(*c))
 	}
 
-	archiveProjectProvider, err := projectprovider.NewArchiveProjectProvider(logger, opts...)
+	archiveProjectProvider, err := projectprovider.NewArchiveProjectProvider(&logger.Log, opts...)
 	if err != nil {
-		logger.Error("Failed to create archive provider", err)
+		logger.Log.Error("Failed to create archive provider", err)
 		panic("failed to create archive provider")
 	}
 
-	htmlgen.RegisterOperation(api, "/pdf/generate/html", pdfService)
-	archiveurlgen.RegisterOperation(api, "/pdf/generate/url", archiveProjectProvider, pdfService, cache)
-	archivegen.RegisterOperation(api, "/pdf/generate/archive", pdfService, cache)
+	server := &Server{
+		archiveProjectProvider: archiveProjectProvider,
+		pdfService:             pdfgenerator.NewHTTPpdfGenerator(config.Config.PDFgeneratorEndpoint),
+		cacheInstance:          c,
+		echoInstance:           e,
+		logger:                 logger.Log,
+	}
+
+	swaggerSpec, err := apigen.GetSwagger()
+	if err != nil {
+		e.Logger.Error("Failed to get swagger spec", err)
+		panic("failed to get swagger spec")
+	}
+	swaggerSpec.Servers = nil
+
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: config.Config.WhitelistOrigins,
+	}))
+	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		LogURI:       true,
+		LogStatus:    true,
+		LogLatency:   true,
+		LogRequestID: true,
+		LogError:     true,
+		LogMethod:    true,
+		LogValuesFunc: func(_ echo.Context, v middleware.RequestLoggerValues) error {
+			server.logger.Info("Request", "method", v.Method, "uri", v.URI, "status", v.Status,
+				"id", v.RequestID, "error", v.Error, "latency", v.Latency)
+			return nil
+		},
+	}))
+	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(
+		rate.Limit(config.Config.MaxRequestsPerSecond),
+	)))
+	e.Use(middleware.RequestID())
+	openapi3filter.RegisterBodyDecoder("multipart/form-data", openapi3filter.FileBodyDecoder)
+	// e.Use(oapiMiddleware.OapiRequestValidatorWithOptions(swaggerSpec, &oapiMiddleware.Options{
+	// 	Options: openapi3filter.Options{
+	// 		AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
+	// 	},
+	// }))
+
+	apigen.RegisterHandlers(e, server)
+
+	logger.Log.Info("Server initialized")
+
+	return server, nil
+}
+
+func (s *Server) Start(port string) error {
+	err := s.echoInstance.Start(":" + port)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Server) Stop() {
+	s.logger.Info("Stopping API server gracefully...")
+	err := s.echoInstance.Close()
+	if err != nil {
+		s.logger.Error("failed to stop API server", err)
+		panic("failed to stop API server")
+	}
+	s.logger.Info("Stopped API server")
+}
+
+func unmarshallInput(jsonBody string) (apigen.Input, error) {
+	var input apigen.Input
+
+	var tmp map[string]string
+	err := json.Unmarshal([]byte(jsonBody), &tmp)
+	if err != nil {
+		return input, err
+	}
+
+	input.Validate, err = strconv.ParseBool(tmp["validate"])
+	if err != nil {
+		return input, err
+	}
+
+	// input.Variables = tmp["variables"]
+
+	return input, nil
 }

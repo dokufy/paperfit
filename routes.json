@@ -1,0 +1,17 @@
+[
+  {
+    "method": "POST",
+    "path": "/pdf/from/archive/file",
+    "name": "github.com/dokufy/paperfit/internal/apigen.(*ServerInterfaceWrapper).CreateDocumentFromArchive-fm"
+  },
+  {
+    "method": "POST",
+    "path": "/pdf/from/archive/url",
+    "name": "github.com/dokufy/paperfit/internal/apigen.(*ServerInterfaceWrapper).CreateDocumentFromArchiveUrl-fm"
+  },
+  {
+    "method": "POST",
+    "path": "/pdf/from/html/file",
+    "name": "github.com/dokufy/paperfit/internal/apigen.(*ServerInterfaceWrapper).CreateDocumentFromFile-fm"
+  }
+]

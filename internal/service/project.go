@@ -2,11 +2,11 @@ package service
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"io"
 	"slices"
 
+	"github.com/dokufy/paperfit/internal/logger"
 	"golang.org/x/net/html"
 )
 
@@ -58,12 +58,6 @@ func (p *Project) AppendVariables(variables string) error {
 		return nil
 	}
 
-	var parsedVars map[string]any
-	err := json.Unmarshal([]byte(variables), &parsedVars)
-	if err != nil {
-		return err
-	}
-
 	index := p.GetIndexFile()
 
 	if index == nil {
@@ -78,24 +72,31 @@ func (p *Project) AppendVariables(variables string) error {
 	script := buildJSscript(variables)
 	appendScriptToHead(doc, script)
 
-	modifiedIndex, err := renderHTML(doc)
+	modifiedIndex, len, err := renderHTML(doc)
 	if err != nil {
 		return err
 	}
 
 	index.Content = modifiedIndex
+	index.size = int64(len)
 
 	return nil
 }
 
-func buildJSscript(JSONvariables string) string {
-	return "window.dokufy=" + JSONvariables + ";"
+func buildJSscript(jsonVars string) string {
+	return "window.dokufy=" + jsonVars + ";"
 }
 
 func appendScriptToHead(doc *html.Node, script string) {
+	if doc == nil {
+		logger.Log.Debug("No document is nil, cannot append script to head.")
+
+		return
+	}
 	scriptNode := &html.Node{
 		Type: html.ElementNode,
 		Data: "script",
+		Attr: []html.Attribute{{Key: "type", Val: "text/javascript"}},
 	}
 
 	scriptText := &html.Node{
@@ -105,29 +106,32 @@ func appendScriptToHead(doc *html.Node, script string) {
 
 	scriptNode.AppendChild(scriptText)
 
-	var traverse func(*html.Node)
-
-	traverse = func(n *html.Node) {
-		if n.Type == html.ElementNode && n.Data == "head" {
-			n.AppendChild(scriptNode)
-			return
-		}
-
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			traverse(c)
-		}
-	}
-
-	traverse(doc)
+	appendScript(doc, scriptNode)
 }
 
-func renderHTML(doc *html.Node) (io.Reader, error) {
-	var buf bytes.Buffer
-	if err := html.Render(&buf, doc); err != nil {
-		return nil, err
+func appendScript(node *html.Node, script *html.Node) {
+	if node == nil || script == nil {
+		return
 	}
 
-	return &buf, nil
+	if node.Type == html.ElementNode && node.Data == "head" {
+		node.AppendChild(script)
+
+		return
+	}
+
+	for c := node.FirstChild; c != nil; c = c.NextSibling {
+		appendScript(c, script)
+	}
+}
+
+func renderHTML(doc *html.Node) (io.Reader, int, error) {
+	var buf bytes.Buffer
+	if err := html.Render(&buf, doc); err != nil {
+		return nil, 0, err
+	}
+
+	return &buf, buf.Len(), nil
 }
 
 func (p *Project) AppendFiles(files ...*File) {

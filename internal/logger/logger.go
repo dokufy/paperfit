@@ -8,14 +8,25 @@ import (
 	slogmulti "github.com/samber/slog-multi"
 )
 
+var Log Logger
+
 type Logger struct {
 	logger *slog.Logger
+}
+
+func Initialize() {
+	Log = New()
+
+	Log.Info("Logger Initialized")
 }
 
 func New() Logger {
 	var handlers []slog.Handler
 
 	handlers = append(handlers, tint.NewHandler(os.Stdout, nil))
+	handlers = append(handlers, slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
 
 	return Logger{
 		logger: slog.New(
