@@ -9,7 +9,27 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-var ErrMissingParam = errors.New("missing parameter")
+var (
+	ErrBadRequest         = errors.New("bad request")
+	ErrServiceUnavailable = errors.New("service unavailable")
+
+	ErrInvalidInputFormat = errors.New("invalid input format")
+	ErrBadVariables       = errors.New("provided variables do not conform to the json schema")
+	ErrInvalidVariables   = errors.New("invalid variables format")
+
+	ErrFailedExtractingArchive = errors.New("failed while extracting archive")
+
+	ErrNoSchemaFile = errors.New("no json schema found in the archive, please make sure that a json schema exists and it is not empty or disable variables validation")
+
+	ErrFailedCreatingCacheKey = errors.New("failed to create cache key")
+	ErrFailedWritingCache     = errors.New("failed to write cache")
+	ErrFailedReadingCache     = errors.New("failed to read cache")
+
+	ErrFailedWritingResponse = errors.New("unexpected error when writing response")
+	ErrFailedCleanupArchive  = errors.New("failed to cleanup existing archive")
+
+	ErrFailedGeneratingPdf = errors.New("failed to generate pdf")
+)
 
 type TranslatedError struct {
 	msg string
