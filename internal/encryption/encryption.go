@@ -4,13 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
-	"errors"
 	"io"
-)
-
-var (
-	ErrIVwrite = errors.New("could not write initial value")
-	ErrIVread  = errors.New("could not read initial value")
 )
 
 func EncryptingReader(key string, r io.Reader) (*cipher.StreamReader, error) {
