@@ -3,7 +3,6 @@ package archive
 import (
 	"bytes"
 	"context"
-	"errors"
 	"io"
 	"time"
 
@@ -75,7 +74,7 @@ func ExtractToProject(ctx context.Context, filename string, content io.Reader) (
 	for {
 		select {
 		case <-ctx.Done():
-			return service.Project{}, errors.New("timeout while extracting archive into project")
+			return service.Project{}, ErrTimeoutExtracting
 		case resp := <-respch:
 			return resp.project, resp.err
 		}
@@ -127,7 +126,7 @@ func CompressArchiveProject(ctx context.Context, project *service.Project) (serv
 	for {
 		select {
 		case <-ctx.Done():
-			return service.File{}, errors.New("timeout while compressing project into archive")
+			return service.File{}, ErrTimeoutCompressing
 		case resp := <-respch:
 			return resp.file, resp.err
 		}
