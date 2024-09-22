@@ -2,15 +2,12 @@ package service
 
 import (
 	"bytes"
-	"errors"
 	"io"
 	"slices"
 
 	"github.com/dokufy/paperfit/internal/logger"
 	"golang.org/x/net/html"
 )
-
-var ErrIndexFileMissing = errors.New("index.html is required")
 
 type Project struct {
 	files []*File
