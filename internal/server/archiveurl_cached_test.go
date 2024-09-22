@@ -40,9 +40,9 @@ func (s *ArchiveUrlCachedTestSuite) SetupSuite() {
 		s.T().Fatal(err)
 	}
 
-	go server.Start(config.Config.ServerPort)
+	go server.Start(config.AppConfig.ServerPort)
 
-	cacheInstance, err := cache.New(config.Config.CacheConfig.CacheUrl)
+	cacheInstance, err := cache.New(config.AppConfig.CacheConfig.CacheUrl)
 	if err != nil {
 		s.T().Fatal("failed to create cache")
 	}
@@ -71,14 +71,14 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_200() {
 
 	cacheKey, _ := cache.Key(mocks.ArchiveMockEndpoint.Url)
 
-	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	reader, err := s.cacheInstance.Get(s.ctx, cacheKey, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	assert.NotEmpty(s.T(), reader)
+	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
+	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_With_Variables_200() {
@@ -105,14 +105,14 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_With_Variables_200() {
 
 	cacheKey, _ := cache.Key(mocks.ArchiveWithJsonSchemaMockEndpoint.Url, string(json))
 
-	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	reader, err := s.cacheInstance.Get(s.ctx, cacheKey, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	assert.NotEmpty(s.T(), reader)
+	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
+	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_With_Validation_And_Variables_200() {
@@ -140,14 +140,14 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_With_Validation_And_Va
 
 	cacheKey, _ := cache.Key(mocks.ArchiveWithJsonSchemaMockEndpoint.Url, string(json))
 
-	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	reader, err := s.cacheInstance.Get(s.ctx, cacheKey, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	assert.NotEmpty(s.T(), reader)
+	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
+	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Use_Cache_200() {
@@ -155,7 +155,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Use_Cache_200() {
 
 	additionalHeaders := map[string]string{
 		"Authorization": "Bearer test",
-		"Content-Type":  "application/pdf",
+		"Content-Type":  echo.MIMEApplicationJSON,
 	}
 	variables := map[string]string{"title": "this is a title"}
 	json, _ := json.Marshal(variables)
@@ -180,12 +180,12 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Use_Cache_200() {
 
 	cacheKey, _ := cache.Key(mocks.ArchiveWithJsonSchemaMockEndpoint.Url, httptool.FlattenHeaders(&additionalHeaders), string(json))
 
-	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	reader, err := s.cacheInstance.Get(s.ctx, cacheKey, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	assert.NotEmpty(s.T(), reader)
+	test.AssertReaderNotEmpty(s.Assertions, reader)
 
 	resp2 := test.Post(
 		test.FullURL("/pdf/from/archive/url"),
@@ -205,15 +205,15 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Use_Cache_200() {
 
 	s.assert.Equal(http.StatusOK, resp2.StatusCode)
 
-	reader, err = s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	reader, err = s.cacheInstance.Get(s.ctx, cacheKey, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	assert.NotEmpty(s.T(), reader)
+	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
+	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
+	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Different_Headers_200() {
@@ -221,7 +221,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Different_Headers_200(
 
 	additionalHeaders := map[string]string{
 		"Authorization": "Bearer test",
-		"Content-Type":  "application/pdf",
+		"Content-Type":  echo.MIMEApplicationJSON,
 	}
 
 	resp := test.Post(
@@ -240,16 +240,16 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Different_Headers_200(
 
 	cacheKey1, err := cache.Key(mocks.ArchiveMockEndpoint.Url, httptool.FlattenHeaders(&additionalHeaders))
 
-	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey1)
+	reader, err := s.cacheInstance.Get(s.ctx, cacheKey1, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	assert.NotEmpty(s.T(), reader)
+	test.AssertReaderNotEmpty(s.Assertions, reader)
 
 	additionalHeaders = map[string]string{
 		"Authorization": "Bearer newtest",
-		"Content-Type":  "application/pdf",
+		"Content-Type":  echo.MIMEApplicationJSON,
 	}
 
 	resp = test.Post(
@@ -268,15 +268,15 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Different_Headers_200(
 
 	cacheKey2, _ := cache.Key(mocks.ArchiveMockEndpoint.Url, httptool.FlattenHeaders(&additionalHeaders))
 
-	reader, err = s.cacheInstance.GetPDF(s.ctx, cacheKey2)
+	reader, err = s.cacheInstance.Get(s.ctx, cacheKey2, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	assert.NotEmpty(s.T(), reader)
+	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey1)
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey2)
+	s.cacheInstance.Delete(s.ctx, cacheKey1, "pdf")
+	s.cacheInstance.Delete(s.ctx, cacheKey2, "pdf")
 }
 
 func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Different_Variables_200() {
@@ -303,12 +303,12 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Different_Variables_20
 
 	cacheKey1, _ := cache.Key(mocks.ArchiveMockEndpoint.Url, string(jsonVars))
 
-	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey1)
+	reader, err := s.cacheInstance.Get(s.ctx, cacheKey1, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	assert.NotEmpty(s.T(), reader)
+	test.AssertReaderNotEmpty(s.Assertions, reader)
 
 	variables = map[string]string{"title": "new title"}
 	jsonVars, _ = json.Marshal(variables)
@@ -331,15 +331,15 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Different_Variables_20
 
 	cacheKey2, _ := cache.Key(mocks.ArchiveMockEndpoint.Url, string(jsonVars))
 
-	reader, err = s.cacheInstance.GetPDF(s.ctx, cacheKey2)
+	reader, err = s.cacheInstance.Get(s.ctx, cacheKey2, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	assert.NotEmpty(s.T(), reader)
+	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey1)
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey2)
+	s.cacheInstance.Delete(s.ctx, cacheKey1, "pdf")
+	s.cacheInstance.Delete(s.ctx, cacheKey2, "pdf")
 }
 
 func (s *ArchiveUrlCachedTestSuite) Test_Fail_Generate_No_Url_400() {
@@ -431,7 +431,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Fail_Generate_With_Validation_And_Varia
 
 	cacheKey, _ := cache.Key(mocks.ArchiveWithEmptyJsonSchemaMockEndpoint.Url)
 
-	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	reader, err := s.cacheInstance.Get(s.ctx, cacheKey, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
@@ -486,7 +486,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Fail_Generate_Variables_Validation_Fail
 
 	cacheKey, _ := cache.Key(mocks.ArchiveWithJsonSchemaMockEndpoint.Url)
 
-	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	reader, err := s.cacheInstance.Get(s.ctx, cacheKey, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}

@@ -45,7 +45,7 @@ var ArchiveNotExistingMockEndpoint = MockEnpointInfo{
 func PassPDFgenerator() {
 	config.Load()
 
-	gock.New(config.Config.PDFgeneratorEndpoint).
+	gock.New(config.AppConfig.PDFgeneratorEndpoint).
 		Post("/").
 		Persist().
 		EnableNetworking()
@@ -54,7 +54,7 @@ func PassPDFgenerator() {
 func PassPath(path string) {
 	config.Load()
 
-	gock.New("http://localhost:" + config.Config.ServerPort).
+	gock.New("http://localhost:" + config.AppConfig.ServerPort).
 		Post(path).
 		Persist().
 		EnableNetworking()

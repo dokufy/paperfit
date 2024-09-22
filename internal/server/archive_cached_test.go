@@ -39,9 +39,9 @@ func (s *ArchiveCachedTestSuite) SetupSuite() {
 		s.T().Fatal(err)
 	}
 
-	go server.Start(config.Config.ServerPort)
+	go server.Start(config.AppConfig.ServerPort)
 
-	cacheInstance, err := cache.New(config.Config.CacheConfig.CacheUrl)
+	cacheInstance, err := cache.New(config.AppConfig.CacheConfig.CacheUrl)
 	if err != nil {
 		s.T().Fatal("failed to create cache")
 	}
@@ -73,14 +73,14 @@ func (s *ArchiveCachedTestSuite) Test_Success_Generate_200() {
 
 	cacheKey, _ := cache.Key(file.Name())
 
-	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	reader, err := s.cacheInstance.Get(s.ctx, cacheKey, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	assert.NotEmpty(s.T(), reader)
+	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
+	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveCachedTestSuite) Test_Success_Generate_With_Variables_200() {
@@ -106,14 +106,14 @@ func (s *ArchiveCachedTestSuite) Test_Success_Generate_With_Variables_200() {
 
 	cacheKey, _ := cache.Key(file.Name(), string(json))
 
-	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	reader, err := s.cacheInstance.Get(s.ctx, cacheKey, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	assert.NotEmpty(s.T(), reader)
+	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
+	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveCachedTestSuite) Test_Success_Generate_With_Validation_And_Variables_200() {
@@ -137,11 +137,11 @@ func (s *ArchiveCachedTestSuite) Test_Success_Generate_With_Validation_And_Varia
 		multipart.Body(),
 	)
 
-	s.assert.Equal(http.StatusOK, resp.StatusCode)
+	s.assert.Equal(http.StatusOK, resp.StatusCode, "pdf")
 
 	cacheKey, _ := cache.Key(file.Name(), string(json))
 
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
+	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveCachedTestSuite) Test_Success_Generate_With_Variables_Empty_Schema_200() {
@@ -165,11 +165,11 @@ func (s *ArchiveCachedTestSuite) Test_Success_Generate_With_Variables_Empty_Sche
 		multipart.Body(),
 	)
 
-	s.assert.Equal(http.StatusOK, resp.StatusCode)
+	s.assert.Equal(http.StatusOK, resp.StatusCode, "pdf")
 
 	cacheKey, _ := cache.Key(file.Name(), string(json))
 
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
+	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveCachedTestSuite) Test_Success_Generate_Use_Cache_200() {
@@ -197,12 +197,12 @@ func (s *ArchiveCachedTestSuite) Test_Success_Generate_Use_Cache_200() {
 
 	cacheKey, _ := cache.Key(file.Name(), string(json))
 
-	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	reader, err := s.cacheInstance.Get(s.ctx, cacheKey, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	assert.NotEmpty(s.T(), reader)
+	test.AssertReaderNotEmpty(s.Assertions, reader)
 
 	file = test.File("archive/valid/with_json_schema.tar.gz")
 	multipart, _ = pdfgenerator.MultipartForm(
@@ -225,14 +225,14 @@ func (s *ArchiveCachedTestSuite) Test_Success_Generate_Use_Cache_200() {
 
 	cacheKey, _ = cache.Key(file.Name(), string(json))
 
-	reader, err = s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	reader, err = s.cacheInstance.Get(s.ctx, cacheKey, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	assert.NotEmpty(s.T(), reader)
+	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey)
+	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveCachedTestSuite) Test_Success_Generate_Different_Variables_200() {
@@ -260,12 +260,12 @@ func (s *ArchiveCachedTestSuite) Test_Success_Generate_Different_Variables_200()
 
 	cacheKey1, _ := cache.Key(file.Name(), string(json))
 
-	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey1)
+	reader, err := s.cacheInstance.Get(s.ctx, cacheKey1, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	assert.NotEmpty(s.T(), reader)
+	test.AssertReaderNotEmpty(s.Assertions, reader)
 
 	file = test.File("archive/valid/with_json_schema.tar.gz")
 
@@ -289,15 +289,15 @@ func (s *ArchiveCachedTestSuite) Test_Success_Generate_Different_Variables_200()
 
 	cacheKey2, _ := cache.Key(file.Name(), string(json))
 
-	reader, err = s.cacheInstance.GetPDF(s.ctx, cacheKey2)
+	reader, err = s.cacheInstance.Get(s.ctx, cacheKey2, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	assert.NotEmpty(s.T(), reader)
+	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey1)
-	s.cacheInstance.DeletePDF(s.ctx, cacheKey2)
+	s.cacheInstance.Delete(s.ctx, cacheKey1, "pdf")
+	s.cacheInstance.Delete(s.ctx, cacheKey2, "pdf")
 }
 
 func (s *ArchiveCachedTestSuite) Test_Fail_Generate_No_Archive_400() {
@@ -342,7 +342,7 @@ func (s *ArchiveCachedTestSuite) Test_Fail_Generate_With_Validation_No_Variables
 
 	cacheKey, _ := cache.Key(file.Name())
 
-	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	reader, err := s.cacheInstance.Get(s.ctx, cacheKey, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
@@ -373,7 +373,7 @@ func (s *ArchiveCachedTestSuite) Test_Fail_Generate_With_Validation_And_Variable
 
 	cacheKey, _ := cache.Key(file.Name())
 
-	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	reader, err := s.cacheInstance.Get(s.ctx, cacheKey, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}
@@ -428,7 +428,7 @@ func (s *ArchiveCachedTestSuite) Test_Fail_Generate_Variables_Validation_Fails_4
 
 	cacheKey, _ := cache.Key(file.Name())
 
-	reader, err := s.cacheInstance.GetPDF(s.ctx, cacheKey)
+	reader, err := s.cacheInstance.Get(s.ctx, cacheKey, "pdf")
 	if err != nil {
 		s.T().Fatal(err)
 	}

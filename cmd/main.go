@@ -8,7 +8,6 @@ import (
 
 func main() {
 	config.Load()
-	logger.Initialize()
 
 	server, err := server.New()
 	if err != nil {
@@ -16,7 +15,7 @@ func main() {
 		panic("failed to initialize API server")
 	}
 
-	err = server.Start(config.Config.ServerPort)
+	err = server.Start(config.AppConfig.ServerPort)
 	if err != nil {
 		logger.Log.Error("Failed to start API server", err)
 		panic("failed to start API server")

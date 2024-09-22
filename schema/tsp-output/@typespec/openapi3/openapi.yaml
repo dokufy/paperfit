@@ -182,11 +182,13 @@ components:
       required:
         - file
       properties:
-        input:
-          $ref: '#/components/schemas/Input'
+        rootPath:
+          type: string
         file:
           type: string
           format: binary
+        input:
+          $ref: '#/components/schemas/Input'
     DocumentArchiveUrlInput:
       type: object
       required:
@@ -199,6 +201,8 @@ components:
             type: string
         input:
           $ref: '#/components/schemas/Input'
+        rootPath:
+          type: string
         url:
           type: string
     DocumentFileInputMultiPart:

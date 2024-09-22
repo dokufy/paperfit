@@ -7,8 +7,9 @@ using TypeSpec.OpenAPI;
 namespace Paperfit;
 
 model DocumentArchiveInput {
-    input?: Input;
+    rootPath?: string;
     file: bytes;
+    input?: Input;
 }
 
 @route("/pdf/from/archive/file")

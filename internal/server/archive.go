@@ -62,13 +62,13 @@ func (s *Server) CreateDocumentFromArchive(c echo.Context) error {
 	}
 
 	if s.cacheInstance != nil {
-		cachedPdf, err := s.cacheInstance.GetPDF(ctx, pdfCacheKey)
+		cachedPdf, err := s.cacheInstance.Get(ctx, pdfCacheKey, "pdf")
 		if err != nil {
 			return sendError(c, http.StatusInternalServerError, ErrFailedReadingCache.Error(), err)
 		}
 
 		if cachedPdf != nil {
-			err = c.Stream(http.StatusOK, "application/pdf", cachedPdf)
+			err = c.Stream(http.StatusOK, echo.MIMEApplicationJSON, cachedPdf)
 			if err != nil {
 				return sendError(c, http.StatusInternalServerError, ErrFailedWritingResponse.Error(), err)
 			}
@@ -102,7 +102,7 @@ func (s *Server) CreateDocumentFromArchive(c echo.Context) error {
 	res, size, err := s.pdfService.Generate(project)
 	if err != nil {
 		if s.cacheInstance != nil {
-			if err2 := s.cacheInstance.DeleteArchive(ctx, archiveCacheKey); err2 != nil {
+			if err2 := s.cacheInstance.Delete(ctx, archiveCacheKey, "archive"); err2 != nil {
 				return sendError(c, http.StatusInternalServerError, ErrFailedCleanupArchive.Error(), err)
 			}
 		}
@@ -122,7 +122,7 @@ func (s *Server) CreateDocumentFromArchive(c echo.Context) error {
 		buf := new(bytes.Buffer)
 		tee := io.TeeReader(res, buf)
 
-		err = s.cacheInstance.SetPDF(ctx, pdfCacheKey, tee, size)
+		err = s.cacheInstance.Set(ctx, pdfCacheKey, tee, size, "pdf")
 		if err != nil {
 			return sendError(c, http.StatusInternalServerError, ErrFailedWritingCache.Error(), err)
 		}
@@ -130,7 +130,7 @@ func (s *Server) CreateDocumentFromArchive(c echo.Context) error {
 		res = buf
 	}
 
-	err = c.Stream(http.StatusOK, "application/pdf", res)
+	err = c.Stream(http.StatusOK, echo.MIMEApplicationJSON, res)
 	if err != nil {
 		return sendError(c, http.StatusInternalServerError, ErrFailedWritingResponse.Error(), err)
 	}

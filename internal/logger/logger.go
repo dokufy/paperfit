@@ -15,12 +15,6 @@ type Logger struct {
 }
 
 func Initialize() {
-	Log = New()
-
-	Log.Info("Logger Initialized")
-}
-
-func New() Logger {
 	var handlers []slog.Handler
 
 	handlers = append(handlers, tint.NewHandler(os.Stdout, nil))
@@ -28,11 +22,13 @@ func New() Logger {
 		Level: slog.LevelDebug,
 	}))
 
-	return Logger{
+	Log = Logger{
 		logger: slog.New(
 			slogmulti.Fanout(handlers...),
 		),
 	}
+
+	Log.Info("Logger Initialized")
 }
 
 func (l *Logger) Info(msg string, args ...any) {

@@ -12,7 +12,7 @@ import (
 )
 
 func FullURL(path string) string {
-	return "http://localhost:" + config.Config.ServerPort + path
+	return "http://localhost:" + config.AppConfig.ServerPort + path
 }
 
 func Post(url string, headers map[string]string, body io.Reader) *http.Response {

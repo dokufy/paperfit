@@ -9,6 +9,7 @@ namespace Paperfit;
 model DocumentArchiveUrlInput {
     additionalHeaders?: Record<string>;
     input: Input;
+    rootPath?: string;
     url: string;
 }
 

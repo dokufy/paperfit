@@ -20,11 +20,3 @@ func ProjectMock(content string) service.Project {
 
 	return service.NewProject([]*service.File{&template})
 }
-
-func ProjectFileMock() service.File {
-	content := "test"
-	index := strings.NewReader(content)
-	index_size := int64(len(content))
-
-	return service.NewFile("index.html", index, index_size)
-}

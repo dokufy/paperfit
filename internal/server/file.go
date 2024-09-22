@@ -90,7 +90,7 @@ func (s *Server) CreateDocumentFromFile(c echo.Context) error {
 		return sendError(c, http.StatusInternalServerError, ErrFailedGeneratingPdf.Error(), err)
 	}
 
-	err = c.Stream(http.StatusOK, "application/pdf", res)
+	err = c.Stream(http.StatusOK, echo.MIMEApplicationJSON, res)
 	if err != nil {
 		return sendError(c, http.StatusInternalServerError, ErrFailedWritingResponse.Error(), err)
 	}

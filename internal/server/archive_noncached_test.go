@@ -35,7 +35,7 @@ func (s *ArchiveNonCachedTestSuite) SetupSuite() {
 		s.T().Fatal(err)
 	}
 
-	go server.Start(config.Config.ServerPort)
+	go server.Start(config.AppConfig.ServerPort)
 
 	s.ctx = context.Background()
 	s.server = server

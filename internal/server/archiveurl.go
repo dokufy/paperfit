@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/dokufy/paperfit/config"
 	"github.com/dokufy/paperfit/internal/apigen"
 	"github.com/dokufy/paperfit/internal/cache"
 	"github.com/dokufy/paperfit/internal/httptool"
@@ -25,6 +26,10 @@ func (s *Server) CreateDocumentFromArchiveUrl(c echo.Context) error {
 
 	var in apigen.DocumentArchiveUrlInput
 	var vars string
+
+	var pdfPath string
+	var archivePath string
+
 	err := c.Bind(&in)
 	if err != nil {
 		return sendError(c, http.StatusBadRequest, ErrBadRequest.Error(), err)
@@ -43,6 +48,15 @@ func (s *Server) CreateDocumentFromArchiveUrl(c echo.Context) error {
 		vars = string(marshalledVars)
 	}
 
+	if s.cacheInstance != nil {
+		pdfPath = config.AppConfig.CacheConfig.DefaultPDFpath
+		archivePath = config.AppConfig.CacheConfig.DefaultArchivePath
+	}
+
+	if in.RootPath != nil {
+		pdfPath = *in.RootPath
+	}
+
 	pdfCacheKey, err := cache.Key(in.Url, httptool.FlattenHeaders(in.AdditionalHeaders), vars)
 	if err != nil {
 		return sendError(c, http.StatusInternalServerError, ErrFailedCreatingCacheKey.Error(), err)
@@ -54,20 +68,20 @@ func (s *Server) CreateDocumentFromArchiveUrl(c echo.Context) error {
 	}
 
 	if s.cacheInstance != nil {
-		cachedPdf, err := s.cacheInstance.GetPDF(ctx, pdfCacheKey)
+		cachedPdf, err := s.cacheInstance.Get(ctx, pdfCacheKey, pdfPath)
 		if err != nil {
 			return sendError(c, http.StatusInternalServerError, ErrFailedReadingCache.Error(), err)
 		}
 
 		if cachedPdf != nil {
-			err = c.Stream(http.StatusOK, "application/pdf", cachedPdf)
+			err = c.Stream(http.StatusOK, echo.MIMEApplicationJSON, cachedPdf)
 			if err != nil {
 				return sendError(c, http.StatusInternalServerError, ErrFailedWritingResponse.Error(), err)
 			}
 		}
 	}
 
-	project, err := s.archiveProjectProvider.GetProject(ctx, in.Url, in.AdditionalHeaders)
+	project, err := s.archiveProjectProvider.GetProject(ctx, in.Url, in.AdditionalHeaders, archivePath)
 	if err != nil {
 		if projectErr, ok := err.(*projectprovider.RequestError); ok {
 			if projectErr.StatusCode == 404 {
@@ -103,7 +117,7 @@ func (s *Server) CreateDocumentFromArchiveUrl(c echo.Context) error {
 	res, size, err := s.pdfService.Generate(&project)
 	if err != nil {
 		if s.cacheInstance != nil {
-			if err2 := s.cacheInstance.DeleteArchive(ctx, archiveCacheKey); err2 != nil {
+			if err2 := s.cacheInstance.Delete(ctx, archiveCacheKey, archivePath); err2 != nil {
 				return sendError(c, http.StatusBadRequest, ErrBadRequest.Error(), err)
 			}
 		}
@@ -120,13 +134,13 @@ func (s *Server) CreateDocumentFromArchiveUrl(c echo.Context) error {
 	}
 
 	if s.cacheInstance != nil {
-		err = s.cacheInstance.SetPDF(ctx, pdfCacheKey, res, size)
+		err = s.cacheInstance.Set(ctx, pdfCacheKey, res, size, pdfPath)
 		if err != nil {
 			return sendError(c, http.StatusInternalServerError, ErrFailedWritingCache.Error(), err)
 		}
 	}
 
-	err = c.Stream(http.StatusOK, "application/pdf", res)
+	err = c.Stream(http.StatusOK, echo.MIMEApplicationJSON, res)
 	if err != nil {
 		return sendError(c, http.StatusInternalServerError, ErrFailedWritingResponse.Error(), err)
 	}

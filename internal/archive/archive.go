@@ -7,6 +7,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/dokufy/paperfit/internal/logger"
 	"github.com/dokufy/paperfit/internal/service"
 	"github.com/mholt/archiver/v4"
 )
@@ -62,6 +63,8 @@ func ExtractToProject(ctx context.Context, filename string, content io.Reader) (
 		if ex, ok := format.(archiver.Extractor); ok {
 			err = ex.Extract(context.Background(), input, nil, handler)
 			if err != nil {
+				logger.Log.Error("Failed to extract archive to project", err)
+
 				respch <- ProjectExtractedResponse{project: service.Project{}, err: err}
 			}
 		}
@@ -113,6 +116,8 @@ func CompressArchiveProject(ctx context.Context, project *service.Project) (serv
 
 		err := format.Archive(ctx, buf, files)
 		if err != nil {
+			logger.Log.Error("Failed to compress archive", err)
+
 			respch <- ProjectCompressedResponse{file: service.File{}, err: err}
 		}
 

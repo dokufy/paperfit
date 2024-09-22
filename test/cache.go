@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func AssertReaderNotEmpty(assert assert.Assertions, reader io.Reader) {
+func AssertReaderNotEmpty(assert *assert.Assertions, reader io.Reader) {
 	if reader == nil {
 		assert.Fail("Reader is empty")
 		return

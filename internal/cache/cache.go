@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/dokufy/paperfit/internal/encryption"
-	"github.com/dokufy/paperfit/internal/logger"
 	"github.com/dokufy/paperfit/internal/service/storage"
 	"github.com/eko/gocache/lib/v4/store"
 )
@@ -17,7 +16,6 @@ import (
 type Cache struct {
 	cacheAdapter  *storage.CacheAdapter
 	encryptionKey *string
-	logger        *logger.Logger
 }
 
 type CacherOptions func(cache *Cache) error
@@ -38,10 +36,6 @@ func New(dsn string, options ...CacherOptions) (*Cache, error) {
 
 	storageOpts := []storage.StorageOption{}
 
-	if cache.logger != nil {
-		storageOpts = append(storageOpts, storage.WithLogger(*cache.logger))
-	}
-
 	store, err := storage.NewStorageAdapter(dsn, storageOpts...)
 	if err != nil {
 		return nil, err
@@ -60,36 +54,61 @@ func WithEncryption(key string) CacherOptions {
 	}
 }
 
-func WithLogger(logger *logger.Logger) CacherOptions {
-	return func(cache *Cache) error {
-		cache.logger = logger
+func (r *Cache) Get(ctx context.Context, key string, rootPath string) (io.Reader, error) {
+	path := filepath.Join(rootPath, key)
 
-		return nil
+	pdf, err := r.cacheAdapter.Get(ctx, path)
+	if err != nil {
+		return nil, err
 	}
+
+	if pdf == nil {
+		return nil, nil
+	}
+
+	if r.encryptionKey != nil {
+		r, err := encryption.DecryptingReader(*r.encryptionKey, pdf.(io.Reader))
+		if err != nil {
+			return nil, err
+		}
+
+		return r, nil
+	}
+
+	return pdf.(io.Reader), nil
 }
 
-func (r *Cache) GetArchive(ctx context.Context, key string) (io.Reader, error) {
-	return get(ctx, r, key, "archive")
+func (r *Cache) Set(ctx context.Context, key string, resource io.Reader, size int64, rootPath string) error {
+	path := filepath.Join(rootPath, key)
+
+	reader := resource
+
+	if r.encryptionKey != nil {
+		r, err := encryption.EncryptingReader(*r.encryptionKey, resource)
+		if err != nil {
+			return err
+		}
+
+		reader = r
+	}
+
+	err := r.cacheAdapter.Set(ctx, path, reader, store.WithCost(size))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (r *Cache) GetPDF(ctx context.Context, key string) (io.Reader, error) {
-	return get(ctx, r, key, "pdf")
-}
+func (r *Cache) Delete(ctx context.Context, key string, rootPath string) error {
+	path := filepath.Join(rootPath, key)
 
-func (r *Cache) SetArchive(ctx context.Context, key string, archive io.Reader, size int64) error {
-	return set(ctx, r, key, archive, size, "archive")
-}
+	err := r.cacheAdapter.Delete(ctx, path)
+	if err != nil {
+		return err
+	}
 
-func (r *Cache) SetPDF(ctx context.Context, key string, pdf io.Reader, size int64) error {
-	return set(ctx, r, key, pdf, size, "pdf")
-}
-
-func (r *Cache) DeleteArchive(ctx context.Context, key string) error {
-	return delete(ctx, r, key, "archive")
-}
-
-func (r *Cache) DeletePDF(ctx context.Context, key string) error {
-	return delete(ctx, r, key, "pdf")
+	return nil
 }
 
 func Key(keys ...string) (string, error) {
@@ -104,61 +123,4 @@ func Key(keys ...string) (string, error) {
 	sha := hash.Sum(nil)
 
 	return base64.URLEncoding.EncodeToString(sha), nil
-}
-
-func get(ctx context.Context, cache *Cache, key string, basePath string) (io.Reader, error) {
-	path := filepath.Join(basePath, key)
-
-	pdf, err := cache.cacheAdapter.Get(ctx, path)
-	if err != nil {
-		return nil, err
-	}
-
-	if pdf == nil {
-		return nil, nil
-	}
-
-	if cache.encryptionKey != nil {
-		r, err := encryption.DecryptingReader(*cache.encryptionKey, pdf.(io.Reader))
-		if err != nil {
-			return nil, err
-		}
-
-		return r, nil
-	}
-
-	return pdf.(io.Reader), nil
-}
-
-func set(ctx context.Context, cache *Cache, key string, pdf io.Reader, size int64, basePath string) error {
-	path := filepath.Join(basePath, key)
-
-	reader := pdf
-
-	if cache.encryptionKey != nil {
-		r, err := encryption.EncryptingReader(*cache.encryptionKey, pdf)
-		if err != nil {
-			return err
-		}
-
-		reader = r
-	}
-
-	err := cache.cacheAdapter.Set(ctx, path, reader, store.WithCost(size))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func delete(ctx context.Context, cache *Cache, key string, basePath string) error {
-	path := filepath.Join(basePath, key)
-
-	err := cache.cacheAdapter.Delete(ctx, path)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

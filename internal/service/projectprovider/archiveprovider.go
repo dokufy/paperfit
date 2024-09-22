@@ -14,10 +14,6 @@ import (
 	"github.com/dokufy/paperfit/internal/service"
 )
 
-type ArchiveProjectServiceProvider interface {
-	GetProject(ctx context.Context, url string, headers *map[string]string) (service.Project, error)
-}
-
 type ArchiveProjectProvider struct {
 	cache  *cache.Cache
 	logger *logger.Logger
@@ -46,7 +42,7 @@ func WithCache(cache cache.Cache) ArchiveProjectProviderOptions {
 	}
 }
 
-func (p *ArchiveProjectProvider) GetProject(ctx context.Context, url string, headers *map[string]string) (service.Project, error) {
+func (p *ArchiveProjectProvider) GetProject(ctx context.Context, url string, headers *map[string]string, rootPath string) (service.Project, error) {
 	var archiveName string
 	var rawArchive io.Reader
 
@@ -56,7 +52,7 @@ func (p *ArchiveProjectProvider) GetProject(ctx context.Context, url string, hea
 	}
 
 	if p.cache != nil {
-		cachedArchive, err := p.cache.GetArchive(ctx, cacheKey)
+		cachedArchive, err := p.cache.Get(ctx, cacheKey, rootPath)
 		if err != nil {
 			return service.Project{}, err
 		}
@@ -102,7 +98,7 @@ func (p *ArchiveProjectProvider) GetProject(ctx context.Context, url string, hea
 			return service.Project{}, err
 		}
 
-		err = p.cache.SetArchive(ctx, cacheKey, file.Content, file.Size())
+		err = p.cache.Set(ctx, cacheKey, file.Content, file.Size(), rootPath)
 		if err != nil {
 			return service.Project{}, err
 		}

@@ -32,7 +32,7 @@ func (s *FileTestSuite) SetupSuite() {
 		s.T().Fatal(err)
 	}
 
-	go server.Start(config.Config.ServerPort)
+	go server.Start(config.AppConfig.ServerPort)
 
 	s.server = server
 	s.assert = assert.New(s.T())

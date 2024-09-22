@@ -26,6 +26,8 @@ func (p *Project) GetIndexFile() *File {
 	index := slices.IndexFunc(p.files, func(f *File) bool { return f.Name() == "index.html" })
 
 	if index == -1 {
+		logger.Log.Debug("Index file not found.")
+
 		return nil
 	}
 
@@ -36,6 +38,8 @@ func (p *Project) GetJSONschemaFile() *File {
 	index := slices.IndexFunc(p.files, func(f *File) bool { return f.Name() == "json_schema.json" })
 
 	if index == -1 {
+		logger.Log.Debug("JSON schema file not found.")
+
 		return nil
 	}
 

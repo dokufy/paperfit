@@ -21,7 +21,7 @@ func setupServer(b *testing.B) *server.Server {
 		b.Fatal(err)
 	}
 
-	go server.Start(config.Config.ServerPort)
+	go server.Start(config.AppConfig.ServerPort)
 
 	return server
 }

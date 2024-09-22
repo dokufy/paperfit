@@ -16,8 +16,7 @@ import (
 )
 
 type StorageAdapter struct {
-	store  types.Storager
-	logger logger.Logger
+	store types.Storager
 }
 
 type StorageOption func(storage *StorageAdapter) error
@@ -28,7 +27,7 @@ func NewStorageAdapter(url string, configs ...StorageOption) (*StorageAdapter, e
 		return nil, err
 	}
 
-	storage := &StorageAdapter{store: store, logger: logger.New()}
+	storage := &StorageAdapter{store: store}
 
 	for _, cfg := range configs {
 		err := cfg(storage)
@@ -38,14 +37,6 @@ func NewStorageAdapter(url string, configs ...StorageOption) (*StorageAdapter, e
 	}
 
 	return storage, nil
-}
-
-func WithLogger(logger logger.Logger) StorageOption {
-	return func(storage *StorageAdapter) error {
-		storage.logger = logger
-
-		return nil
-	}
 }
 
 func (s *StorageAdapter) GetWithTTL(ctx context.Context, key any) (any, time.Duration, error) {
@@ -59,7 +50,7 @@ func (s *StorageAdapter) Get(ctx context.Context, key any) (any, error) {
 
 	_, err := s.store.ReadWithContext(ctx, key.(string), &buf)
 	if err != nil {
-		s.logger.Debug("failed to read key", key, err)
+		logger.Log.Debug("failed to read key", key, err)
 		return nil, nil
 	}
 
@@ -71,7 +62,7 @@ func (s *StorageAdapter) Set(ctx context.Context, key any, value any, options ..
 
 	_, err := s.store.WriteWithContext(ctx, key.(string), value.(io.Reader), opts.Cost)
 	if err != nil {
-		s.logger.Error("failed to write key", key, err)
+		logger.Log.Debug("failed to write key", key, err)
 		return err
 	}
 

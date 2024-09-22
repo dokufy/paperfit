@@ -8,7 +8,6 @@ import (
 	"github.com/dokufy/paperfit/internal/apigen"
 	"github.com/dokufy/paperfit/internal/cache"
 	"github.com/dokufy/paperfit/internal/logger"
-	"github.com/dokufy/paperfit/internal/service"
 	"github.com/dokufy/paperfit/internal/service/pdfgenerator"
 	"github.com/dokufy/paperfit/internal/service/projectprovider"
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -21,8 +20,8 @@ import (
 
 type Server struct {
 	cacheInstance          *cache.Cache
-	archiveProjectProvider projectprovider.ArchiveProjectServiceProvider
-	pdfService             service.PDFserviceGenerator
+	archiveProjectProvider *projectprovider.ArchiveProjectProvider
+	pdfService             *pdfgenerator.GotembergGenerator
 	echoInstance           *echo.Echo
 	logger                 logger.Logger
 }
@@ -35,14 +34,14 @@ func New() (*Server, error) {
 	e.HideBanner = true
 
 	var c *cache.Cache
-	if config.Config.CacheConfig != nil {
-		opts := []cache.CacherOptions{cache.WithLogger(&logger.Log)}
+	if config.AppConfig.CacheConfig != nil {
+		opts := []cache.CacherOptions{}
 
-		if config.Config.CacheConfig.EncryptionKey != nil {
-			opts = append(opts, cache.WithEncryption(*config.Config.CacheConfig.EncryptionKey))
+		if config.AppConfig.CacheConfig.EncryptionKey != nil {
+			opts = append(opts, cache.WithEncryption(*config.AppConfig.CacheConfig.EncryptionKey))
 		}
 
-		cache, err := cache.New(config.Config.CacheConfig.CacheUrl, opts...)
+		cache, err := cache.New(config.AppConfig.CacheConfig.CacheUrl, opts...)
 		if err != nil {
 			logger.Log.Error("Failed to create cache", err)
 			panic("failed to create cache")
@@ -65,7 +64,7 @@ func New() (*Server, error) {
 
 	server := &Server{
 		archiveProjectProvider: archiveProjectProvider,
-		pdfService:             pdfgenerator.NewHTTPpdfGenerator(config.Config.PDFgeneratorEndpoint),
+		pdfService:             pdfgenerator.New(config.AppConfig.PDFgeneratorEndpoint),
 		cacheInstance:          c,
 		echoInstance:           e,
 		logger:                 logger.Log,
@@ -79,7 +78,7 @@ func New() (*Server, error) {
 	swaggerSpec.Servers = nil
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: config.Config.WhitelistOrigins,
+		AllowOrigins: config.AppConfig.WhitelistOrigins,
 	}))
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogURI:       true,
@@ -95,7 +94,7 @@ func New() (*Server, error) {
 		},
 	}))
 	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(
-		rate.Limit(config.Config.MaxRequestsPerSecond),
+		rate.Limit(config.AppConfig.MaxRequestsPerSecond),
 	)))
 	e.Use(middleware.RequestID())
 	openapi3filter.RegisterBodyDecoder("multipart/form-data", openapi3filter.FileBodyDecoder)

@@ -8,15 +8,15 @@ import (
 	"github.com/dokufy/paperfit/internal/service"
 )
 
-type HTTPpdfGenerator struct {
+type GotembergGenerator struct {
 	endpoint string
 }
 
-func NewHTTPpdfGenerator(endpoint string) *HTTPpdfGenerator {
-	return &HTTPpdfGenerator{endpoint: endpoint}
+func New(endpoint string) *GotembergGenerator {
+	return &GotembergGenerator{endpoint: endpoint}
 }
 
-func (p *HTTPpdfGenerator) Generate(project *service.Project) (io.Reader, int64, error) {
+func (p *GotembergGenerator) Generate(project *service.Project) (io.Reader, int64, error) {
 	// TODO: add timeout env variable
 	multipart, err := MultipartForm("file", project.GetFiles(), &map[string]string{
 		"marginTop":         "0",
