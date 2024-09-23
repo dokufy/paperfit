@@ -4,12 +4,12 @@ paperfit is a service that creates PDFs by integrating variable data into pre-de
 
 ## Goals
 
-- Build HTML templates with any modern frontend framework, supporting HTML, CSS, JavaScript (`<canvas>` too)
-- Enable template versioning
-- Dynamic PDF content. Variable inputs offer limitless customization in templates through JavaScript
-- Ensure fast generation
+- Build HTML templates with any modern frontend framework (`<canvas>` too)
+- Enable versioning of HTML templates
+- Dynamic PDF content with variable inputs available in template's javascript
+- Ensure fast generation (30k pages in <60s)
 - Cache PDFs for better performance
-- Multiple caching options: Object storage solutions (AWS, GCS, Minio, Dropbox and more) or local file system
+- Multiple caching options: AWS, GCS, Minio, Dropbox and more, or local file system
 
 ## Typical use case
 
@@ -25,8 +25,8 @@ To request a PDF, the main application specifies the template's registry URL and
 
 ### Current Limitations
 
-- The built template assets must be flattened, meaning all file paths such as `/dirA/dirB/file.js` need to be simplified to `/file.js`. This requirement stems from the use of [Gotemberg](https://gotenberg.dev/) for PDF generation.
-- Encryption and decryption for cached files are still in the testing phase. However, most object storage solutions already offer built-in support for this feature.
+- The built template assets must be flattened, meaning all file paths such as `/dirA/dirB/file.js` need to be simplified to `/file.js`.<br />This requirement stems from the use of [Gotemberg](https://gotenberg.dev/) for PDF generation.
+- Encryption and decryption for cached files are still in testing. However, most object storage solutions already offer built-in support for this feature.
 
 ## Prerequisites
 
