@@ -1,7 +1,6 @@
 version: "3"
 
 env:
-  ENV: development
   BASE_PATH: 
     sh: pwd
   SERVER_PORT: '{{ env "SERVER_PORT" | default "4000" }}'
@@ -9,9 +8,7 @@ env:
   PDF_GENERATOR_ENDPOINT: '{{ env "PDF_GENERATOR_ENDPOINT" | default "http://localhost:5000/forms/chromium/convert/html" }}'
 
   CACHE_URL: '{{ env "CACHE_URL" | default "minio://testing?credential=hmac:2V0dOJk8sgV1aGVv6OoU:c2XmdF64zwF5e5JKSU9CJXFujxRI3y3mVHjpI4lJ&endpoint=http:localhost:9000" }}'
-  CACHE_ENCRYPTION_KEY: '{{ env "CACHE_ENCRYPTION_KEY" | default "NamGxa5cJVKvd+lXyJtG0UUgsGd7euwHnhDD8SW/1hOAWr6DWeS0w26myN5Thl+U" }}'
-
-dotenv: [".env", "{{.ENV}}/.env.", "{{.HOME}}/.env"]
+  CACHE_ENCRYPTION_KEY: '{{ env "CACHE_ENCRYPTION_KEY" }}'
 
 includes:
   api:
@@ -31,11 +28,11 @@ tasks:
   setup:
     desc: run setup (copy .env.dist file, get deps)
     cmds:
-      - cp -n .env.dist .env
+      - cp --update=none .env.dist .env
       - go mod download
 
   docker:
-    desc: run dependency services via Docker
+    desc: run dependant services via Docker
     cmds:
       - docker-compose up
       - defer: docker-compose stop
