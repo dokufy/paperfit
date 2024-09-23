@@ -7,7 +7,7 @@ paperfit is a service that creates PDFs by integrating variable data into pre-de
 - Build HTML templates with any modern frontend framework (`<canvas>` too)
 - Enable versioning of HTML templates
 - Dynamic PDF content with variable inputs available in template's javascript
-- Ensure fast generation (30k pages in <60s)
+- Ensure fast generation (20k pages in <60s)
 - Cache PDFs for better performance
 - Multiple caching options: AWS, GCS, Minio, Dropbox and more, or local file system
 
