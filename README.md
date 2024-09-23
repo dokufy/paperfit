@@ -13,7 +13,6 @@ paperfit is a service that creates PDFs by integrating variable data into pre-de
 
 ## Typical use case
 
-$~~~~~~~~~~~$
 <img src="docs/paperfit-concept.jpg" width="800" />
 
 A ***typical paperfit*** instance operates alongside the main backend application.
