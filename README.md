@@ -46,7 +46,7 @@ asdf reshim golang
 
 ```sh
 # install dependencies
-task install_global
+task install
 # copy env file
 task setup
 ```
