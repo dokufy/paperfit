@@ -1,4 +1,33 @@
-# docfusion
+# paperfit
+
+paperfit is a service that creates PDFs by integrating variable data into pre-designed HTML templates.
+
+## Goals
+
+- Build HTML templates with any modern frontend framework, supporting HTML, CSS, JavaScript (`<canvas>` too)
+- Enable template versioning
+- Dynamic PDF content. Variable inputs offer limitless customization in templates through JavaScript.
+- Ensure fast generation
+- Cache PDFs for better performance
+- Multiple caching options: Object storage solutions (AWS, GCS, Minio, Dropbox and more) or local file system.
+
+## Typical use case
+
+$~~~~~~~~~~~$
+<img src="docs/paperfit-concept.jpg" width="800" />
+
+A ***typical paperfit*** instance operates alongside the main backend application.
+
+HTML templates, built using any modern frontend framework, are published to a package registry like GitLab, allowing version control.
+
+To request a PDF, the main application specifies the template's registry URL and desired version.<br />Variables can be passed in the request, which are merged with the template and made available to JavaScript within the template.
+
+***paperfit*** generates the PDF, optionally caches it for future use, and returns it to the main application.
+
+### Current Limitations
+
+- Template repositories must be flattened, meaning all file paths such as `/dirA/dirB/file.js` need to be simplified to `/file.js`. This requirement stems from the use of [Gotemberg](https://gotenberg.dev/) for PDF generation.
+- Encryption and decryption for cached files are still in the testing phase. However, most object storage solutions already offer built-in support for this feature.
 
 ## Prerequisites
 
@@ -7,19 +36,17 @@
 - [Docker](https://docs.docker.com/engine/install/)
   - [Compose](https://docs.docker.com/compose/install/)
 
-### Docker Registry Access
-
 ## Setup
 
 ```sh
 # install task runner
 go install github.com/go-task/task/v3/cmd/task@latest
-# reshim ASDF after installing global packages
+# reshim ASDF after installing packages
 asdf reshim golang
 ```
 
 ```sh
-# install global dependencies (atlas, jet, air)
+# install dependencies
 task install_global
 # copy env file
 task setup
@@ -35,32 +62,38 @@ export GOROOT=$(asdf where golang)/go
 
 ## Development
 
-First, start the docker stack
+First, start the docker stack:
 
 ```sh
 task docker
 ```
 
-Then, you can start the dev server.
+Then, you can start the dev server:
 
 ```sh
 task dev
 ```
+#
+### Format
 
-When opening the `schema.hcl` in vscode, use Ctrl+Shift+P -> "Change Language Mode" -> "Atlas PostgreSQL" (using the `ariga.atlas-hcl` extension).
+```sh
+task format
+```
 
-The [playground](https://gh.atlasgo.cloud/explore) can also be helpful for visualizing the schema.
+### Test
 
-## Testing
+Make sure you have created a bucket, created an access key and set `CACHE_URL` accordingly: 
 
-The test task should trigger all test commands.
+`minio://<bucket-name>?credential=hmac:<access-key-name>:<access-key-value>&endpoint=http:localhost:9000`
+
+You can then run tests with:
 
 ```sh
 task test
 ```
 
-### Linting
+### Lint
 
 ```sh
-task test:lint
+task lint
 ```

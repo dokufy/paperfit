@@ -44,13 +44,6 @@ tasks:
     cmds:
       - task: api:gen
 
-  format:
-    desc: runs all code quality tools
-    cmds:
-      - gofumpt -l -w .
-      - gci write --skip-generated -s standard -s default .
-      - goimports -w -l .
-
   dev:
     desc: run dev server in watch mode
     cmds:
@@ -62,6 +55,18 @@ tasks:
       PATH: '{{ .CLI_ARGS | default "./cmd/bench" }}'
     cmds:
       - go test {{ .PATH }} -bench=. -run=xxx -benchmem
+
+  format:
+    desc: runs all code quality tools
+    cmds:
+      - gofumpt -l -w .
+      - gci write --skip-generated -s standard -s default .
+      - goimports -w -l .
+
+  lint:
+    desc: runs tests
+    cmds:
+      - golangci-lint run
 
   test:
     desc: runs tests
@@ -75,11 +80,6 @@ tasks:
     cmds:
       - task test:lint
       - task test
-
-  test:lint:
-    desc: runs tests
-    cmds:
-      - golangci-lint run
 
   build:
     desc: build server
