@@ -25,7 +25,7 @@ To request a PDF, the main application specifies the template's registry URL and
 
 ### Current Limitations
 
-- Template repositories must be flattened, meaning all file paths such as `/dirA/dirB/file.js` need to be simplified to `/file.js`. This requirement stems from the use of [Gotemberg](https://gotenberg.dev/) for PDF generation.
+- The built template assets must be flattened, meaning all file paths such as `/dirA/dirB/file.js` need to be simplified to `/file.js`. This requirement stems from the use of [Gotemberg](https://gotenberg.dev/) for PDF generation.
 - Encryption and decryption for cached files are still in the testing phase. However, most object storage solutions already offer built-in support for this feature.
 
 ## Prerequisites
