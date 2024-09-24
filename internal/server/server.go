@@ -98,6 +98,8 @@ func New() (*Server, error) {
 	)))
 	e.Use(middleware.RequestID())
 	openapi3filter.RegisterBodyDecoder("multipart/form-data", openapi3filter.FileBodyDecoder)
+
+	// TODO: FIgure out if this can be used
 	// e.Use(oapiMiddleware.OapiRequestValidatorWithOptions(swaggerSpec, &oapiMiddleware.Options{
 	// 	Options: openapi3filter.Options{
 	// 		AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
