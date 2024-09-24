@@ -1,12 +1,12 @@
 # paperfit
 
-paperfit is a service that creates PDFs by integrating variable data into pre-designed HTML templates.
+paperfit is a service that creates PDFs by integrating variable data into pre-designed HTML Templates.
 
 ## Goals
 
-- Build HTML templates with any modern frontend framework (`<canvas>` too)
-- Enable versioning of HTML templates
-- Dynamic PDF content with variable inputs available in template's javascript
+- Build HTML Templates with any modern frontend framework (`<canvas>` too)
+- Enable versioning of HTML Templates
+- Dynamic PDF content with variable inputs available in Template's javascript
 - Ensure fast generation (20k pages in <60s)
 - Cache PDFs for better performance
 - Multiple caching options: AWS, GCS, Minio, Dropbox and more, or local file system
@@ -17,15 +17,15 @@ paperfit is a service that creates PDFs by integrating variable data into pre-de
 
 A ***typical paperfit*** instance operates alongside the main backend application.
 
-HTML templates, built using any modern frontend framework, are published to a package registry like GitLab, allowing version control.
+HTML Templates, built using any modern frontend framework, are published to a package registry like GitLab, allowing version control.
 
-To request a PDF, the main application specifies the template's registry URL and desired version.<br />Variables can be passed in the request, which are merged with the template and made available to JavaScript within the template.
+To request a PDF, the main application specifies the Template's registry URL and desired version.<br />Variables can be passed in the request, which are merged with the Template and made available to JavaScript within the Template.
 
 ***paperfit*** generates the PDF, optionally caches it for future use, and returns it to the main application.
 
 ### Current Limitations
 
-- The built template assets must be flattened, meaning all file paths such as `/dirA/dirB/file.js` need to be simplified to `/file.js`.<br />This requirement stems from the use of [Gotemberg](https://gotenberg.dev/) for PDF generation.
+- The built Template assets must be flattened, meaning all file paths such as `/dirA/dirB/file.js` need to be simplified to `/file.js`.<br />This requirement stems from the use of [Gotemberg](https://gotenberg.dev/) for PDF generation.
 - Encryption and decryption for cached files are still in testing. However, most object storage solutions already offer built-in support for this feature.
 
 ## Prerequisites
