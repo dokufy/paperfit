@@ -51,6 +51,8 @@ Now you are ready to render your first template.
 
 ## Build a template with paperfit.js
 
+Use case examples for Vanilla JavaScript, Vue, React, and Angular are available in the [pdf_examples repository](https://github.com/dokufy/pdf_examples).
+
 A template is just an HTML file, an optional `json_schema.json`, and any assets you need.
 Here is a small vanilla JavaScript invoice:
 
