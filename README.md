@@ -185,8 +185,10 @@ There are no API keys, model names, or providers baked into the service.
 
 A typical paperfit instance runs alongside your backend application.
 
-HTML templates are built with any modern frontend stack and published to a package registry such as GitLab or GitHub, which gives you version control for free.
-To create a PDF, your application sends the template archive URL, or raw HTML, together with the variables.
+HTML templates can be built with any modern frontend stack.
+You can send the HTML directly to paperfit.
+Publishing the template archive to a package registry such as GitLab or GitHub is optional, but it is a convenient way to keep versioned documents.
+To create a PDF, your application sends the raw HTML or the template archive URL together with the variables.
 paperfit merges the variables into the template, renders it with Gotenberg and Chromium, optionally caches the PDF, and streams it back.
 
 ## Docker
