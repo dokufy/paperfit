@@ -5,25 +5,33 @@ import (
 	"io"
 	"strings"
 
-	"github.com/santhosh-tekuri/jsonschema"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
-func Validate(json string, schema io.Reader) (io.Reader, error) {
+func Validate(document string, schema io.Reader) (io.Reader, error) {
 	var buf bytes.Buffer
 	tee := io.TeeReader(schema, &buf)
+
+	schemaDoc, err := jsonschema.UnmarshalJSON(tee)
+	if err != nil {
+		return nil, err
+	}
+
 	c := jsonschema.NewCompiler()
 
-	err := c.AddResource("schema.json", tee)
+	if err := c.AddResource("schema.json", schemaDoc); err != nil {
+		return nil, err
+	}
+
+	compiled, err := c.Compile("schema.json")
 	if err != nil {
 		return nil, err
 	}
 
-	sch, err := c.Compile("schema.json")
+	doc, err := jsonschema.UnmarshalJSON(strings.NewReader(document))
 	if err != nil {
-		return nil, err
+		return &buf, err
 	}
 
-	r := strings.NewReader(string(json))
-
-	return &buf, sch.Validate(r)
+	return &buf, compiled.Validate(doc)
 }

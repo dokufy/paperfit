@@ -4,12 +4,20 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"io/fs"
 	"time"
 
 	"github.com/dokufy/paperfit/internal/logger"
 	"github.com/dokufy/paperfit/internal/service"
 	"github.com/mholt/archiver/v4"
 )
+
+type archiveFile struct {
+	io.ReadCloser
+	fs.FileInfo
+}
+
+func (f archiveFile) Stat() (fs.FileInfo, error) { return f.FileInfo, nil }
 
 type ProjectExtractedResponse struct {
 	project service.Project
@@ -28,14 +36,14 @@ func ExtractToProject(ctx context.Context, filename string, content io.Reader) (
 	respch := make(chan ProjectExtractedResponse)
 
 	go func() {
-		format, input, err := archiver.Identify(filename, content)
+		format, input, err := archiver.Identify(ctx, filename, content)
 		if err != nil {
 			respch <- ProjectExtractedResponse{project: service.Project{}, err: err}
 		}
 
 		fileList := []*service.File{}
 
-		handler := func(ctx context.Context, f archiver.File) error {
+		handler := func(ctx context.Context, f archiver.FileInfo) error {
 			if f.IsDir() {
 				return nil
 			}
@@ -60,7 +68,7 @@ func ExtractToProject(ctx context.Context, filename string, content io.Reader) (
 		}
 
 		if ex, ok := format.(archiver.Extractor); ok {
-			err = ex.Extract(context.Background(), input, nil, handler)
+			err = ex.Extract(context.Background(), input, handler)
 			if err != nil {
 				logger.Log.Error("Failed to extract archive to project", err)
 
@@ -89,25 +97,25 @@ func CompressArchiveProject(ctx context.Context, project *service.Project) (serv
 
 	go func() {
 		buf := new(bytes.Buffer)
-		var files []archiver.File
+		var files []archiver.FileInfo
 
-		format := archiver.CompressedArchive{
+		format := archiver.Archive{
 			Compression: archiver.Brotli{},
 			Archival:    archiver.Tar{},
 		}
 
 		for _, file := range project.GetFiles() {
 			if file != nil {
-				files = append(files, archiver.File{
+				files = append(files, archiver.FileInfo{
 					FileInfo:      file,
 					NameInArchive: file.Name(),
-					Open: func() (io.ReadCloser, error) {
+					Open: func() (fs.File, error) {
 						buf := new(bytes.Buffer)
 						tee := io.TeeReader(file.Content, buf)
 
 						file.Content = buf
 
-						return io.NopCloser(tee), nil
+						return archiveFile{ReadCloser: io.NopCloser(tee), FileInfo: file}, nil
 					},
 				})
 			}
