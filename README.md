@@ -24,6 +24,18 @@ Bring any frontend stack, build with paperfit.js and Paged.js, and let any AI mo
 | **Versioned templates** | Publish templates as archives and request a specific URL or version. |
 | **Small container** | Around 38 MB, non-root, and configured entirely with environment variables. |
 
+## How it works
+
+<img src="docs/paperfit-concept.jpg" width="800" alt="paperfit flow: an app requests a PDF, paperfit loads an HTML template or versioned archive, renders it with Chromium, and returns the PDF" />
+
+A typical paperfit instance runs alongside your backend application.
+
+HTML templates can be built with any modern frontend stack.
+You can send the HTML directly to paperfit.
+Publishing the template archive to a package registry such as GitLab or GitHub is optional, but it is a convenient way to keep versioned documents.
+To create a PDF, your application sends the raw HTML or the template archive URL together with the variables.
+paperfit merges the variables into the template, renders it with Gotenberg and Chromium, optionally caches the PDF, and streams it back.
+
 ## Quick start
 
 Run paperfit next to Gotenberg with Docker Compose:
@@ -178,18 +190,6 @@ Available MCP tools:
 
 Point your MCP client at paperfit and use whichever model you prefer.
 There are no API keys, model names, or providers baked into the service.
-
-## How it works
-
-<img src="docs/paperfit-concept.jpg" width="800" alt="paperfit flow: an app requests a PDF, paperfit fetches a versioned template from Git, renders it with Chromium, and returns the PDF" />
-
-A typical paperfit instance runs alongside your backend application.
-
-HTML templates can be built with any modern frontend stack.
-You can send the HTML directly to paperfit.
-Publishing the template archive to a package registry such as GitLab or GitHub is optional, but it is a convenient way to keep versioned documents.
-To create a PDF, your application sends the raw HTML or the template archive URL together with the variables.
-paperfit merges the variables into the template, renders it with Gotenberg and Chromium, optionally caches the PDF, and streams it back.
 
 ## Docker
 
