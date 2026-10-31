@@ -1,8 +1,10 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 
 	"github.com/dokufy/paperfit/config"
@@ -54,6 +56,9 @@ func (s *Server) CreateDocumentFromArchiveUrl(c *echo.Context) error {
 	}
 
 	if in.RootPath != nil {
+		if err := cache.ValidateRootPath(*in.RootPath); err != nil {
+			return sendError(c, http.StatusBadRequest, ErrBadRequest.Error(), err)
+		}
 		pdfPath = *in.RootPath
 	}
 
@@ -67,22 +72,6 @@ func (s *Server) CreateDocumentFromArchiveUrl(c *echo.Context) error {
 		return sendError(c, http.StatusInternalServerError, ErrFailedCreatingCacheKey.Error(), err)
 	}
 
-	if s.cacheInstance != nil {
-		cachedPdf, err := s.cacheInstance.Get(ctx, pdfCacheKey, pdfPath)
-		if err != nil {
-			return sendError(c, http.StatusInternalServerError, ErrFailedReadingCache.Error(), err)
-		}
-
-		if cachedPdf != nil {
-			err = c.Stream(http.StatusOK, echo.MIMEApplicationJSON, cachedPdf)
-			if err != nil {
-				return sendError(c, http.StatusInternalServerError, ErrFailedWritingResponse.Error(), err)
-			}
-
-			return nil
-		}
-	}
-
 	project, err := s.archiveProjectProvider.GetProject(ctx, in.Url, in.AdditionalHeaders, archivePath)
 	if err != nil {
 		if projectErr, ok := err.(*projectprovider.RequestError); ok {
@@ -92,6 +81,10 @@ func (s *Server) CreateDocumentFromArchiveUrl(c *echo.Context) error {
 		}
 
 		return sendError(c, http.StatusInternalServerError, ErrFailedFetchingArchive.Error(), err)
+	}
+
+	if project.GetIndexFile() == nil {
+		return sendError(c, http.StatusBadRequest, service.ErrIndexFileMissing.Error(), service.ErrIndexFileMissing)
 	}
 
 	if vars != "" {
@@ -116,7 +109,23 @@ func (s *Server) CreateDocumentFromArchiveUrl(c *echo.Context) error {
 		jsonSchema.Content = jsonSchemaContent
 	}
 
-	res, size, err := s.pdfService.Generate(&project)
+	if s.cacheInstance != nil {
+		cachedPdf, err := s.cacheInstance.Get(ctx, pdfCacheKey, pdfPath)
+		if err != nil {
+			return sendError(c, http.StatusInternalServerError, ErrFailedReadingCache.Error(), err)
+		}
+
+		if cachedPdf != nil {
+			err = c.Stream(http.StatusOK, echo.MIMEApplicationJSON, cachedPdf)
+			if err != nil {
+				return sendError(c, http.StatusInternalServerError, ErrFailedWritingResponse.Error(), err)
+			}
+
+			return nil
+		}
+	}
+
+	res, size, err := s.pdfService.Generate(ctx, &project)
 	if err != nil {
 		if s.cacheInstance != nil {
 			if err2 := s.cacheInstance.Delete(ctx, archiveCacheKey, archivePath); err2 != nil {
@@ -136,10 +145,15 @@ func (s *Server) CreateDocumentFromArchiveUrl(c *echo.Context) error {
 	}
 
 	if s.cacheInstance != nil {
-		err = s.cacheInstance.Set(ctx, pdfCacheKey, res, size, pdfPath)
+		buf := new(bytes.Buffer)
+		tee := io.TeeReader(res, buf)
+
+		err = s.cacheInstance.Set(ctx, pdfCacheKey, tee, size, pdfPath)
 		if err != nil {
 			return sendError(c, http.StatusInternalServerError, ErrFailedWritingCache.Error(), err)
 		}
+
+		res = buf
 	}
 
 	err = c.Stream(http.StatusOK, echo.MIMEApplicationJSON, res)

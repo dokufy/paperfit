@@ -1,0 +1,9 @@
+.git
+.github
+.env
+bin
+tmp
+docs
+test
+schema/node_modules
+schema/tsp-output

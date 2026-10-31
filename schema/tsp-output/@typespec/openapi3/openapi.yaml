@@ -3,10 +3,45 @@ info:
   title: paperfit
   version: 0.0.0
 tags:
+  - name: Application
   - name: Generate from archive
   - name: Generate from archive url
   - name: Generate from HTML
 paths:
+  /application/healthy:
+    get:
+      tags:
+        - Application
+      operationId: healthy
+      summary: Check if the application is running
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '429':
+          description: Client error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+        '500':
+          description: Application not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnknownError'
+      security:
+        - {}
   /pdf/from/archive/file:
     post:
       tags:
@@ -119,6 +154,51 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/DocumentArchiveUrlInput'
+  /pdf/from/html:
+    post:
+      tags:
+        - Generate from HTML
+      operationId: createDocumentFromHtml
+      summary: Create document from HTML
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: string
+                format: byte
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '429':
+          description: Client error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnknownError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentHtmlInput'
   /pdf/from/html/file:
     post:
       tags:
@@ -218,6 +298,47 @@ components:
           items:
             type: string
             format: binary
+    DocumentHtmlInput:
+      type: object
+      required:
+        - html
+      properties:
+        html:
+          type: string
+        assets:
+          type: object
+          additionalProperties:
+            type: string
+        jsonSchema: {}
+        input:
+          $ref: '#/components/schemas/Input'
+        rootPath:
+          type: string
+        options:
+          type: object
+          properties:
+            landscape:
+              type: boolean
+            waitDelay:
+              type: string
+            waitForExpression:
+              type: string
+            paperWidth:
+              type: string
+            paperHeight:
+              type: string
+            marginTop:
+              type: string
+            marginBottom:
+              type: string
+            marginLeft:
+              type: string
+            marginRight:
+              type: string
+            preferCssPageSize:
+              type: boolean
+            printBackground:
+              type: boolean
     Input:
       type: object
       required:

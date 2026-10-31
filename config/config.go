@@ -3,9 +3,14 @@ package config
 import (
 	"log"
 	"log/slog"
+	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/dokufy/paperfit/internal/mockgotenberg"
 )
 
 type Config struct {
@@ -33,12 +38,45 @@ func Load() {
 	defaultWhitelistOrigins := "*"
 	defaultMaxRequestsPerSecond := "20"
 
+	basePath := GetEnv("BASE_PATH", nil)
+	if basePath == nil || *basePath == "" {
+		wd, _ := os.Getwd()
+		// Walk up to find module root (go.mod) so tests resolve files
+		// regardless of the working directory the binary runs in.
+		dir := wd
+		for {
+			if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+				break
+			}
+			parent := filepath.Dir(dir)
+			if parent == dir {
+				break
+			}
+			dir = parent
+		}
+		basePath = &dir
+	}
+
+	serverPort := GetEnv("SERVER_PORT", nil)
+	if serverPort == nil || *serverPort == "" {
+		def := "4000"
+		serverPort = &def
+	}
+
+	pdfEndpoint := GetEnv("PDF_GENERATOR_ENDPOINT", nil)
+	if pdfEndpoint == nil || *pdfEndpoint == "" {
+		def := "http://localhost:5000/forms/chromium/convert/html"
+		pdfEndpoint = &def
+	}
+
+	pdfEndpointStr := mockgotenberg.EnsureAvailable(*pdfEndpoint)
+
 	AppConfig = Config{
-		BasePath:             FetchEnv("BASE_PATH"),
-		ServerPort:           FetchEnv("SERVER_PORT"),
+		BasePath:             *basePath,
+		ServerPort:           *serverPort,
 		WhitelistOrigins:     strings.Fields(*GetEnv("WHITELIST_ORIGINS", &defaultWhitelistOrigins)),
 		MaxRequestsPerSecond: stringToFloat64(*GetEnv("MAX_REQUESTS_PER_SECOND", &defaultMaxRequestsPerSecond)),
-		PDFgeneratorEndpoint: FetchEnv("PDF_GENERATOR_ENDPOINT"),
+		PDFgeneratorEndpoint: pdfEndpointStr,
 		CacheConfig:          CreateCacheConfig(),
 	}
 }
@@ -49,7 +87,22 @@ func CreateCacheConfig() *CacheConfig {
 
 	cacheUrl := GetEnv("CACHE_URL", nil)
 	if cacheUrl == nil || *cacheUrl == "" {
-		return nil
+		dir := filepath.Join(os.TempDir(), "paperfit-cache")
+		_ = os.MkdirAll(dir, 0o755)
+		u := "fs://" + dir
+		cacheUrl = &u
+	} else {
+		if strings.Contains(*cacheUrl, "localhost:9000") || strings.Contains(*cacheUrl, "127.0.0.1:9000") {
+			conn, err := net.DialTimeout("tcp", "localhost:9000", 300*time.Millisecond)
+			if err != nil {
+				dir := filepath.Join(os.TempDir(), "paperfit-cache")
+				_ = os.MkdirAll(dir, 0o755)
+				u := "fs://" + dir
+				cacheUrl = &u
+			} else {
+				_ = conn.Close()
+			}
+		}
 	}
 
 	return &CacheConfig{

@@ -9,13 +9,28 @@ import (
 	"golang.org/x/net/html"
 )
 
+type RenderOptions struct {
+	Landscape         *bool   `json:"landscape,omitempty"`
+	WaitDelay         *string `json:"waitDelay,omitempty"`
+	WaitForExpression *string `json:"waitForExpression,omitempty"`
+	PaperWidth        *string `json:"paperWidth,omitempty"`
+	PaperHeight       *string `json:"paperHeight,omitempty"`
+	MarginTop         *string `json:"marginTop,omitempty"`
+	MarginBottom      *string `json:"marginBottom,omitempty"`
+	MarginLeft        *string `json:"marginLeft,omitempty"`
+	MarginRight       *string `json:"marginRight,omitempty"`
+	PreferCssPageSize *bool   `json:"preferCssPageSize,omitempty"`
+	PrintBackground   *bool   `json:"printBackground,omitempty"`
+}
+
 type Project struct {
-	files []*File
+	files         []*File
+	RenderOptions *RenderOptions `json:"-"`
 }
 
 func NewProject(files []*File) Project {
 	return Project{
-		files,
+		files: files,
 	}
 }
 
@@ -85,7 +100,7 @@ func (p *Project) AppendVariables(variables string) error {
 }
 
 func buildJSscript(jsonVars string) string {
-	return "window.dokufy=" + jsonVars + ";"
+	return "window.__PAPERFIT_INPUT__=" + jsonVars + ";"
 }
 
 func appendScriptToHead(doc *html.Node, script string) {
@@ -107,23 +122,48 @@ func appendScriptToHead(doc *html.Node, script string) {
 
 	scriptNode.AppendChild(scriptText)
 
-	appendScript(doc, scriptNode)
+	// Find or create <head>.
+	head := findElement(doc, "head")
+	if head == nil {
+		// insert head into html or prepend to document
+		htmlEl := findElement(doc, "html")
+		head = &html.Node{Type: html.ElementNode, Data: "head"}
+		if htmlEl != nil {
+			if htmlEl.FirstChild != nil {
+				htmlEl.InsertBefore(head, htmlEl.FirstChild)
+			} else {
+				htmlEl.AppendChild(head)
+			}
+		} else {
+			// prepend to document
+			if doc.FirstChild != nil {
+				doc.InsertBefore(head, doc.FirstChild)
+			} else {
+				doc.AppendChild(head)
+			}
+		}
+	}
+
+	if head.FirstChild != nil {
+		head.InsertBefore(scriptNode, head.FirstChild)
+	} else {
+		head.AppendChild(scriptNode)
+	}
 }
 
-func appendScript(node *html.Node, script *html.Node) {
-	if node == nil || script == nil {
-		return
+func findElement(node *html.Node, tag string) *html.Node {
+	if node == nil {
+		return nil
 	}
-
-	if node.Type == html.ElementNode && node.Data == "head" {
-		node.AppendChild(script)
-
-		return
+	if node.Type == html.ElementNode && node.Data == tag {
+		return node
 	}
-
 	for c := node.FirstChild; c != nil; c = c.NextSibling {
-		appendScript(c, script)
+		if r := findElement(c, tag); r != nil {
+			return r
+		}
 	}
+	return nil
 }
 
 func renderHTML(doc *html.Node) (io.Reader, int, error) {

@@ -17,6 +17,8 @@ var (
 )
 
 func (s *Server) CreateDocumentFromFile(c *echo.Context) error {
+	ctx := c.Request().Context()
+
 	form, err := c.MultipartForm()
 	if err != nil {
 		return sendError(c, http.StatusBadRequest, ErrInvalidInputFormat.Error(), err)
@@ -45,18 +47,23 @@ func (s *Server) CreateDocumentFromFile(c *echo.Context) error {
 			if err != nil {
 				return sendError(c, http.StatusBadRequest, ErrFailedToReadFile.Error(), err)
 			}
+			defer func() { _ = of.Close() }()
 
-			project.AppendFile(file.Filename, of, file.Size)
+			_ = project.AppendFile(file.Filename, of, file.Size)
 		}
 	}
 
-	vars, err := json.Marshal(in.Variables)
-	if err != nil {
-		return sendError(c, http.StatusBadRequest, ErrInvalidVariables.Error(), err)
+	if project.GetIndexFile() == nil {
+		return sendError(c, http.StatusBadRequest, service.ErrIndexFileMissing.Error(), service.ErrIndexFileMissing)
 	}
 
-	if vars != nil && len(vars) > 0 {
-		err := project.AppendVariables(string(vars))
+	if len(in.Variables) > 0 {
+		vars, err := json.Marshal(in.Variables)
+		if err != nil {
+			return sendError(c, http.StatusBadRequest, ErrInvalidVariables.Error(), err)
+		}
+
+		err = project.AppendVariables(string(vars))
 		if err != nil {
 			return sendError(c, http.StatusBadRequest, ErrInvalidVariables.Error(), err)
 		}
@@ -69,6 +76,7 @@ func (s *Server) CreateDocumentFromFile(c *echo.Context) error {
 			return sendError(c, http.StatusBadRequest, ErrNoSchemaFile.Error(), err)
 		}
 
+		vars, _ := json.Marshal(in.Variables)
 		jsonSchemaContent, err := validation.Validate(string(vars), jsonSchema.Content)
 		if err != nil {
 			return sendError(c, http.StatusBadRequest, ErrBadVariables.Error(), err)
@@ -77,7 +85,7 @@ func (s *Server) CreateDocumentFromFile(c *echo.Context) error {
 		jsonSchema.Content = jsonSchemaContent
 	}
 
-	res, _, err := s.pdfService.Generate(&project)
+	res, _, err := s.pdfService.Generate(ctx, &project)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidRequest) {
 			return sendError(c, http.StatusBadRequest, ErrBadRequest.Error(), err)

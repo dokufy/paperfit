@@ -17,7 +17,7 @@ type Logger struct {
 func Initialize() {
 	var handlers []slog.Handler
 
-	handlers = append(handlers, tint.NewHandler(os.Stdout, nil))
+	handlers = append(handlers, tint.NewTextHandler(os.Stderr, nil))
 	handlers = append(handlers, slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}))

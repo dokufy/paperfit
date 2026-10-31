@@ -20,7 +20,7 @@ import (
 var initialCacheURL = os.Getenv("CACHE_URL")
 
 func UseCacheURL() {
-	os.Setenv("CACHE_URL", initialCacheURL)
+	_ = os.Setenv("CACHE_URL", initialCacheURL)
 }
 
 func FullURL(path string) string {
@@ -38,7 +38,7 @@ func WaitForServer(tb testing.TB) {
 	for time.Now().Before(deadline) {
 		conn, err := net.DialTimeout("tcp", address, 100*time.Millisecond)
 		if err == nil {
-			conn.Close()
+			_ = conn.Close()
 
 			return
 		}

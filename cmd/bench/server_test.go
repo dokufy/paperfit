@@ -21,7 +21,7 @@ func setupServer(b *testing.B) *server.Server {
 		b.Fatal(err)
 	}
 
-	go server.Start(config.AppConfig.ServerPort)
+	go func() { _ = server.Start(config.AppConfig.ServerPort) }()
 	test.WaitForServer(b)
 
 	return server

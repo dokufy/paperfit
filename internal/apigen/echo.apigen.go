@@ -38,6 +38,28 @@ type DocumentFileInputMultiPart struct {
 	Input Input                `json:"input"`
 }
 
+// DocumentHtmlInput defines model for DocumentHtmlInput.
+type DocumentHtmlInput struct {
+	Assets     *map[string]string `json:"assets,omitempty"`
+	Html       string             `json:"html"`
+	Input      *Input             `json:"input,omitempty"`
+	JsonSchema interface{}        `json:"jsonSchema,omitempty"`
+	Options    *struct {
+		Landscape         *bool   `json:"landscape,omitempty"`
+		MarginBottom      *string `json:"marginBottom,omitempty"`
+		MarginLeft        *string `json:"marginLeft,omitempty"`
+		MarginRight       *string `json:"marginRight,omitempty"`
+		MarginTop         *string `json:"marginTop,omitempty"`
+		PaperHeight       *string `json:"paperHeight,omitempty"`
+		PaperWidth        *string `json:"paperWidth,omitempty"`
+		PreferCssPageSize *bool   `json:"preferCssPageSize,omitempty"`
+		PrintBackground   *bool   `json:"printBackground,omitempty"`
+		WaitDelay         *string `json:"waitDelay,omitempty"`
+		WaitForExpression *string `json:"waitForExpression,omitempty"`
+	} `json:"options,omitempty"`
+	RootPath *string `json:"rootPath,omitempty"`
+}
+
 // Input defines model for Input.
 type Input struct {
 	Validate  bool                   `json:"validate"`
@@ -70,17 +92,26 @@ type CreateDocumentFromArchiveMultipartRequestBody = DocumentArchiveInputMultiPa
 // CreateDocumentFromArchiveUrlJSONRequestBody defines body for CreateDocumentFromArchiveUrl for application/json ContentType.
 type CreateDocumentFromArchiveUrlJSONRequestBody = DocumentArchiveUrlInput
 
+// CreateDocumentFromHtmlJSONRequestBody defines body for CreateDocumentFromHtml for application/json ContentType.
+type CreateDocumentFromHtmlJSONRequestBody = DocumentHtmlInput
+
 // CreateDocumentFromFileMultipartRequestBody defines body for CreateDocumentFromFile for multipart/form-data ContentType.
 type CreateDocumentFromFileMultipartRequestBody = DocumentFileInputMultiPart
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Healthy Check if the application is running
+	// (GET /application/healthy)
+	Healthy(ctx *echo.Context) error
 	// CreateDocumentFromArchive Create document from archive
 	// (POST /pdf/from/archive/file)
 	CreateDocumentFromArchive(ctx *echo.Context) error
 	// CreateDocumentFromArchiveUrl Create document from archive url
 	// (POST /pdf/from/archive/url)
 	CreateDocumentFromArchiveUrl(ctx *echo.Context) error
+	// CreateDocumentFromHtml Create document from HTML
+	// (POST /pdf/from/html)
+	CreateDocumentFromHtml(ctx *echo.Context) error
 	// CreateDocumentFromFile Create document from file
 	// (POST /pdf/from/html/file)
 	CreateDocumentFromFile(ctx *echo.Context) error
@@ -89,6 +120,15 @@ type ServerInterface interface {
 // ServerInterfaceWrapper converts echo contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
+}
+
+// Healthy converts echo context to params.
+func (w *ServerInterfaceWrapper) Healthy(ctx *echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.Healthy(ctx)
+	return err
 }
 
 // CreateDocumentFromArchive converts echo context to params.
@@ -106,6 +146,15 @@ func (w *ServerInterfaceWrapper) CreateDocumentFromArchiveUrl(ctx *echo.Context)
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.CreateDocumentFromArchiveUrl(ctx)
+	return err
+}
+
+// CreateDocumentFromHtml converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateDocumentFromHtml(ctx *echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateDocumentFromHtml(ctx)
 	return err
 }
 
@@ -165,8 +214,10 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 		Handler: si,
 	}
 
+	router.GET(options.BaseURL+"/application/healthy", wrapper.Healthy, options.OperationMiddlewares["healthy"]...)
 	router.POST(options.BaseURL+"/pdf/from/archive/file", wrapper.CreateDocumentFromArchive, options.OperationMiddlewares["createDocumentFromArchive"]...)
 	router.POST(options.BaseURL+"/pdf/from/archive/url", wrapper.CreateDocumentFromArchiveUrl, options.OperationMiddlewares["createDocumentFromArchiveUrl"]...)
+	router.POST(options.BaseURL+"/pdf/from/html", wrapper.CreateDocumentFromHtml, options.OperationMiddlewares["createDocumentFromHtml"]...)
 	router.POST(options.BaseURL+"/pdf/from/html/file", wrapper.CreateDocumentFromFile, options.OperationMiddlewares["createDocumentFromFile"]...)
 
 }
@@ -176,28 +227,32 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"7FhLbxs3EP4rA7bHrVdN2kN1y6NpAiSF0TyAIjKK0XKkZcIlt+SsbDXQfy+GXD1WD9sp7EMRnyyTs5xv",
-	"Xt+3yy+q8k3rHTmOavxFxaqmBtPP577qGnL8JFS1WdAr13b8prNszjGwGLTBtxTYUDKfGUvprw8Nshqr",
-	"qXEYlqpQvGxJjVXkYNxcrQpl5Cix/T7QTI3Vd+UWRNkjKJM/sQ7e8zlyLQ/sHSW79HdnAmk1/pghXGwc",
-	"+uknqtIRe6G8D/bVGsIwCNTasPEO7UtCTWFv8XxgfBDXgd87C7RQXbA3JyD7y8bX5eGFsbeqZ/phmJp4",
-	"y8r2CxgCLr82ASdiyTiORXOihgu0RiPTTrqm3ltCJw8tMBicWrqusoel3MO2cbF73jGIfyDTa9MY/jUE",
-	"H8SlplgF04pXNU77YMUA6Koi0qRVsRdPQzHinG6u/trwGJD3DjuufTD/kD6BZdcEKNncE5TPzl+6kyjS",
-	"7n0C+JCrZ/wpDE9RgxxGke8DwapQkaouGF6+lRHIBz8lDBSedHn+02yk1k3L21mrmVu1WqXZmvkEw7Aw",
-	"r2qxpTAzAnlBIeZQRmejs5EE7Vty2Bo1Vo/TUqFa5Dp5Lls9K2fBNyVmfizXXN76yIfpeYefKQI66M2h",
-	"8o7ROOPmgBAZ2VTw8t2b19AGLyFPXOVdNJHFws8AGSxhZECYdKPR42qa/pBxmq7Oam5sXi77dRA8gE6D",
-	"b/O4wmbsJo49TAVDMzWONOhOygHnz1/AnByFVOiz3k+AMh85ce9q2p4CGAhwgcbKv4AR5tZPd/0A+4n7",
-	"FCEnIoKmWXJnHHBN60iP+PmwOaFCJ0jX5KHh0nC9n4NP0bu/MjOeye9hJiYupaJP+NZ9X4kTYfZ5IJ2y",
-	"YgRJVZMG9mCaNvgFgbSO0LurqJi4acfp2GSXHrDShhouaxo4hJkhq8FhQ+DDTraqGt38EI9KjZhr8kqr",
-	"sXoWCJk2uhR802u0ytNEkZ96vZQmlKDJpX5sRLZaDFwK6B80Mm5fXm6Sm+vfa1bDOebQUVqIrXcxT+qj",
-	"0WgPD7atNVWKqpSiDcFsdXPJtJ3kDW+siv0Bq2nNP1BjhNhVWRvOZJJ/+kr31+VinwpPgIkUFhSg8p0U",
-	"2zN0Tl6OWEaSd8DqjlJTudTjEJeO8aoH/eOdgT7UsiOwn1QVxSi92+2YZyyPfrkzLHsCfwTIM2vIca9n",
-	"q0L9fIflG0jpEd9vc91636I7XdPIq9t68ED3wwDC/+uplh7FeRQV+62njuH+hZx1KBv9O+px1XhBXNVD",
-	"3cDMMnOzIAddsP9PIfnTd4naW4wRtm+UPSKTzer8OdHD6ReBa2S4NNaK4y6uCXYmqRLfO0xbTNzMB6Ar",
-	"bFpLhRB/hZEG4+eItAgVSMOTY2mqNJDaXzrrUT/I4FYGpQs2jRjoDjWxC7bYyZgP0Fd/rYq3V8H3wV4r",
-	"hP+dOk59Ej/o34P+fev6JxN8kwYmmz0dFMG51bfTEWlL0hRhqG8Tt6NwW1G7Cxm7L+K/BdEfcHtm8zZQ",
-	"lErsc7n73SfSlShMXLMyaRA95NrE9fjdhlfl5uv+Py2O3K898OoDr36zvDrLU3ecUIUFhUl3rsXU+OPw",
-	"QuzjxepCtsVtTLtDQK99hRYyrP7+O1+VjcvSyl7tI48fj0YjtbrYAPmiHKZLtuNfOavieoMkASeNUlir",
-	"i9W/AwA=",
+	"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",
+	"KxS9XV2t/h0A",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

@@ -1,7 +1,6 @@
 package server_test
 
 import (
-	"context"
 	"net/http"
 	"testing"
 
@@ -17,7 +16,6 @@ import (
 
 type FileTestSuite struct {
 	suite.Suite
-	ctx    context.Context
 	server *server.Server
 	assert *assert.Assertions
 }
@@ -32,7 +30,7 @@ func (s *FileTestSuite) SetupSuite() {
 		s.T().Fatal(err)
 	}
 
-	go server.Start(config.AppConfig.ServerPort)
+	go func() { _ = server.Start(config.AppConfig.ServerPort) }()
 	test.WaitForServer(s.T())
 
 	s.server = server
@@ -193,6 +191,5 @@ func (s *FileTestSuite) Test_Fail_Generate_Variables_Validation_Fails_400() {
 }
 
 func TestSuccessfulGeneration(t *testing.T) {
-
 	suite.Run(t, new(FileTestSuite))
 }

@@ -1,6 +1,6 @@
 services:
-  gotemberg:
-    image: gotenberg/gotenberg:8
+  gotenberg:
+    image: gotenberg/gotenberg:8.39.0
     command: gotenberg --log-level=debug --api-timeout=300s
     ports:
       - "5000:3000"

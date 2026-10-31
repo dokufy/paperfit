@@ -3,7 +3,7 @@ import "@typespec/rest";
 
 import "./common/error.tsp";
 
-namespace paperfit;
+namespace Paperfit;
 
 using TypeSpec.Http;
 using TypeSpec.Rest;

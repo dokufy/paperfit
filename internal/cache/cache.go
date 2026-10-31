@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto"
 	"encoding/base64"
+	"errors"
 	"io"
 	"path/filepath"
 	"strings"
@@ -23,13 +24,11 @@ type CacherOptions func(cache *Cache) error
 func New(dsn string, options ...CacherOptions) (*Cache, error) {
 	cache := &Cache{}
 
-	if options != nil {
-		for _, cfg := range options {
-			if cfg != nil {
-				err := cfg(cache)
-				if err != nil {
-					return &Cache{}, err
-				}
+	for _, cfg := range options {
+		if cfg != nil {
+			err := cfg(cache)
+			if err != nil {
+				return &Cache{}, err
 			}
 		}
 	}
@@ -55,7 +54,10 @@ func WithEncryption(key string) CacherOptions {
 }
 
 func (r *Cache) Get(ctx context.Context, key string, rootPath string) (io.Reader, error) {
-	path := filepath.Join(rootPath, key)
+	if err := ValidateRootPath(rootPath); err != nil {
+		return nil, err
+	}
+	path := filepath.Join(strings.TrimPrefix(rootPath, "/"), key)
 
 	pdf, err := r.cacheAdapter.Get(ctx, path)
 	if err != nil {
@@ -79,7 +81,10 @@ func (r *Cache) Get(ctx context.Context, key string, rootPath string) (io.Reader
 }
 
 func (r *Cache) Set(ctx context.Context, key string, resource io.Reader, size int64, rootPath string) error {
-	path := filepath.Join(rootPath, key)
+	if err := ValidateRootPath(rootPath); err != nil {
+		return err
+	}
+	path := filepath.Join(strings.TrimPrefix(rootPath, "/"), key)
 
 	reader := resource
 
@@ -101,13 +106,32 @@ func (r *Cache) Set(ctx context.Context, key string, resource io.Reader, size in
 }
 
 func (r *Cache) Delete(ctx context.Context, key string, rootPath string) error {
-	path := filepath.Join(rootPath, key)
+	if err := ValidateRootPath(rootPath); err != nil {
+		return err
+	}
+	path := filepath.Join(strings.TrimPrefix(rootPath, "/"), key)
 
 	err := r.cacheAdapter.Delete(ctx, path)
 	if err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func ValidateRootPath(rootPath string) error {
+	for _, seg := range strings.Split(filepath.ToSlash(rootPath), "/") {
+		if seg == ".." {
+			return errors.New("invalid root path: contains '..' traversal component")
+		}
+	}
+	trimmed := strings.TrimPrefix(rootPath, "/")
+	if filepath.IsAbs(trimmed) {
+		return errors.New("invalid root path: absolute path not allowed")
+	}
+	if strings.HasPrefix(filepath.Clean(rootPath), "..") {
+		return errors.New("invalid root path: contains '..' traversal component")
+	}
 	return nil
 }
 

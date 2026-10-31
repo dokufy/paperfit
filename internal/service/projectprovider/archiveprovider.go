@@ -2,10 +2,13 @@ package projectprovider
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
+	neturl "net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/dokufy/paperfit/internal/archive"
 	"github.com/dokufy/paperfit/internal/cache"
@@ -51,6 +54,7 @@ func (p *ArchiveProjectProvider) GetProject(ctx context.Context, url string, hea
 		return service.Project{}, err
 	}
 
+	cacheHit := false
 	if p.cache != nil {
 		cachedArchive, err := p.cache.Get(ctx, cacheKey, rootPath)
 		if err != nil {
@@ -60,13 +64,22 @@ func (p *ArchiveProjectProvider) GetProject(ctx context.Context, url string, hea
 		if cachedArchive != nil {
 			archiveName = "archive.tar.br"
 			rawArchive = cachedArchive
+			cacheHit = true
 		}
 	}
 
 	if rawArchive == nil {
-		client := http.Client{}
+		u, err := neturl.Parse(url)
+		if err != nil {
+			return service.Project{}, err
+		}
+		if u.Scheme != "http" && u.Scheme != "https" {
+			return service.Project{}, errors.New("invalid url scheme")
+		}
 
-		req, err := http.NewRequest("GET", url, nil)
+		client := http.Client{Timeout: 60 * time.Second}
+
+		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 		if err != nil {
 			return service.Project{}, err
 		}
@@ -77,9 +90,14 @@ func (p *ArchiveProjectProvider) GetProject(ctx context.Context, url string, hea
 		if err != nil {
 			return service.Project{}, err
 		}
+		defer func() { _ = res.Body.Close() }()
 
 		if res.StatusCode == http.StatusNotFound {
 			return service.Project{}, &RequestError{StatusCode: 404, Message: "archive not found"}
+		}
+
+		if res.StatusCode < 200 || res.StatusCode >= 300 {
+			return service.Project{}, &RequestError{StatusCode: res.StatusCode, Message: "failed to fetch archive"}
 		}
 
 		archiveName = path.Base(url)
@@ -91,8 +109,8 @@ func (p *ArchiveProjectProvider) GetProject(ctx context.Context, url string, hea
 		return service.Project{}, err
 	}
 
-	if p.cache != nil {
-		// TODO: run this in a separate goroutine
+	if p.cache != nil && !cacheHit {
+		// Only write to archive cache on a cache miss.
 		file, err := archive.CompressArchiveProject(ctx, &project)
 		if err != nil {
 			return service.Project{}, err

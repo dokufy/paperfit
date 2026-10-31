@@ -27,7 +27,7 @@ type ArchiveUrlNonCachedTestSuite struct {
 }
 
 func (s *ArchiveUrlNonCachedTestSuite) SetupSuite() {
-	os.Setenv("CACHE_URL", "")
+	_ = os.Setenv("CACHE_URL", "")
 	config.Load()
 
 	mocks.PassPDFgenerator()
@@ -38,7 +38,7 @@ func (s *ArchiveUrlNonCachedTestSuite) SetupSuite() {
 		s.T().Fatal(err)
 	}
 
-	go server.Start(config.AppConfig.ServerPort)
+	go func() { _ = server.Start(config.AppConfig.ServerPort) }()
 	test.WaitForServer(s.T())
 
 	s.ctx = context.Background()
@@ -235,6 +235,5 @@ func (s *ArchiveUrlNonCachedTestSuite) Test_Fail_Generate_Bad_Variables_400() {
 }
 
 func TestArchiveUrlNonCached(t *testing.T) {
-
 	suite.Run(t, new(ArchiveUrlNonCachedTestSuite))
 }

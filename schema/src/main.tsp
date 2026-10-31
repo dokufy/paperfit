@@ -5,6 +5,7 @@ import "./application.tsp";
 import "./archive_operation.tsp";
 import "./archive_url_operation.tsp";
 import "./file_operation.tsp";
+import "./html_operation.tsp";
 
 using TypeSpec.Http;
 

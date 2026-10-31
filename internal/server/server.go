@@ -2,10 +2,8 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"os/signal"
-	"strconv"
 	"sync/atomic"
 	"syscall"
 
@@ -13,6 +11,7 @@ import (
 	"github.com/dokufy/paperfit/internal/apigen"
 	"github.com/dokufy/paperfit/internal/cache"
 	"github.com/dokufy/paperfit/internal/logger"
+	"github.com/dokufy/paperfit/internal/mcp"
 	"github.com/dokufy/paperfit/internal/service/pdfgenerator"
 	"github.com/dokufy/paperfit/internal/service/projectprovider"
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -24,6 +23,7 @@ type Server struct {
 	cacheInstance          *cache.Cache
 	archiveProjectProvider *projectprovider.ArchiveProjectProvider
 	pdfService             *pdfgenerator.GotembergGenerator
+	mcpServer              *mcp.Server
 	echoInstance           *echo.Echo
 	logger                 logger.Logger
 	ctx                    context.Context
@@ -74,6 +74,7 @@ func New() (*Server, error) {
 		echoInstance:           e,
 		logger:                 logger.Log,
 	}
+	server.mcpServer = mcp.New(server.pdfService)
 
 	server.ctx, server.cancel = context.WithCancel(context.Background())
 	server.done = make(chan struct{})
@@ -108,6 +109,10 @@ func New() (*Server, error) {
 
 	apigen.RegisterHandlers(e, server)
 
+	e.POST("/mcp", server.HandleMCP)
+	e.GET("/mcp", server.HandleMCPGet)
+	e.GET("/llms.txt", server.HandleLLMs)
+
 	logger.Log.Info("Server initialized")
 
 	return server, nil
@@ -138,23 +143,4 @@ func (s *Server) Stop() {
 	}
 
 	s.logger.Info("Stopped API server")
-}
-
-func unmarshallInput(jsonBody string) (apigen.Input, error) {
-	var input apigen.Input
-
-	var tmp map[string]string
-	err := json.Unmarshal([]byte(jsonBody), &tmp)
-	if err != nil {
-		return input, err
-	}
-
-	input.Validate, err = strconv.ParseBool(tmp["validate"])
-	if err != nil {
-		return input, err
-	}
-
-	// input.Variables = tmp["variables"]
-
-	return input, nil
 }

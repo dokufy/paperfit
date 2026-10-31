@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"code.sajari.com/docconv/v2"
 	"github.com/dokufy/paperfit/config"
 	"github.com/dokufy/paperfit/internal/service"
+	"github.com/ledongthuc/pdf"
 )
 
 func File(relPath string) service.File {
@@ -34,11 +34,26 @@ func FilePath(relPath string) string {
 	return filepath.Join(config.AppConfig.BasePath, "test/files", relPath)
 }
 
-func PdfToString(pdf io.Reader) string {
-	res, _, err := docconv.ConvertPDF(pdf)
+func PdfToString(r io.Reader) string {
+	data, err := io.ReadAll(r)
 	if err != nil {
 		panic(err)
 	}
 
-	return res
+	reader, err := pdf.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		panic(err)
+	}
+
+	text, err := reader.GetPlainText()
+	if err != nil {
+		panic(err)
+	}
+
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, text); err != nil {
+		panic(err)
+	}
+
+	return buf.String()
 }

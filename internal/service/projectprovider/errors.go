@@ -7,5 +7,14 @@ type RequestError struct {
 }
 
 func (r *RequestError) Error() string {
-	return r.Err.Error()
+	if r == nil {
+		return ""
+	}
+	if r.Err != nil {
+		return r.Err.Error()
+	}
+	if r.Message != "" {
+		return r.Message
+	}
+	return ""
 }

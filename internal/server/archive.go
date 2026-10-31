@@ -37,9 +37,23 @@ func (s *Server) CreateDocumentFromArchive(c *echo.Context) error {
 		}
 	}
 
+	rootPath := c.Request().FormValue("rootPath")
+
+	pdfPath := "pdf"
+	if rootPath != "" {
+		if err := cache.ValidateRootPath(rootPath); err != nil {
+			return sendError(c, http.StatusBadRequest, ErrBadRequest.Error(), err)
+		}
+		pdfPath = rootPath
+	}
+
 	project, archiveName, err := archiveToProject(ctx, file)
 	if err != nil {
 		return sendError(c, http.StatusInternalServerError, ErrFailedExtractingArchive.Error(), err)
+	}
+
+	if project.GetIndexFile() == nil {
+		return sendError(c, http.StatusBadRequest, service.ErrIndexFileMissing.Error(), service.ErrIndexFileMissing)
 	}
 
 	if len(in.Variables) > 0 {
@@ -59,22 +73,6 @@ func (s *Server) CreateDocumentFromArchive(c *echo.Context) error {
 	archiveCacheKey, err := cache.Key(archiveName)
 	if err != nil {
 		return sendError(c, http.StatusInternalServerError, ErrFailedCreatingCacheKey.Error(), err)
-	}
-
-	if s.cacheInstance != nil {
-		cachedPdf, err := s.cacheInstance.Get(ctx, pdfCacheKey, "pdf")
-		if err != nil {
-			return sendError(c, http.StatusInternalServerError, ErrFailedReadingCache.Error(), err)
-		}
-
-		if cachedPdf != nil {
-			err = c.Stream(http.StatusOK, echo.MIMEApplicationJSON, cachedPdf)
-			if err != nil {
-				return sendError(c, http.StatusInternalServerError, ErrFailedWritingResponse.Error(), err)
-			}
-
-			return nil
-		}
 	}
 
 	if vars != "" {
@@ -99,7 +97,23 @@ func (s *Server) CreateDocumentFromArchive(c *echo.Context) error {
 		jsonSchema.Content = jsonSchemaContent
 	}
 
-	res, size, err := s.pdfService.Generate(project)
+	if s.cacheInstance != nil {
+		cachedPdf, err := s.cacheInstance.Get(ctx, pdfCacheKey, pdfPath)
+		if err != nil {
+			return sendError(c, http.StatusInternalServerError, ErrFailedReadingCache.Error(), err)
+		}
+
+		if cachedPdf != nil {
+			err = c.Stream(http.StatusOK, echo.MIMEApplicationJSON, cachedPdf)
+			if err != nil {
+				return sendError(c, http.StatusInternalServerError, ErrFailedWritingResponse.Error(), err)
+			}
+
+			return nil
+		}
+	}
+
+	res, size, err := s.pdfService.Generate(ctx, project)
 	if err != nil {
 		if s.cacheInstance != nil {
 			if err2 := s.cacheInstance.Delete(ctx, archiveCacheKey, "archive"); err2 != nil {
@@ -122,7 +136,7 @@ func (s *Server) CreateDocumentFromArchive(c *echo.Context) error {
 		buf := new(bytes.Buffer)
 		tee := io.TeeReader(res, buf)
 
-		err = s.cacheInstance.Set(ctx, pdfCacheKey, tee, size, "pdf")
+		err = s.cacheInstance.Set(ctx, pdfCacheKey, tee, size, pdfPath)
 		if err != nil {
 			return sendError(c, http.StatusInternalServerError, ErrFailedWritingCache.Error(), err)
 		}
@@ -144,7 +158,7 @@ func archiveToProject(ctx context.Context, file *multipart.FileHeader) (*service
 		return nil, "", err
 	}
 
-	defer src.Close()
+	defer func() { _ = src.Close() }()
 
 	project, err := archive.ExtractToProject(ctx, file.Filename, src)
 	if err != nil {

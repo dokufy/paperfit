@@ -15,7 +15,7 @@ func EncryptingReader(key string, r io.Reader) (*cipher.StreamReader, error) {
 		return nil, err
 	}
 
-	stream := cipher.NewOFB(block, iv)
+	stream := cipher.NewCTR(block, iv)
 	return &cipher.StreamReader{S: stream, R: r}, nil
 }
 
@@ -27,7 +27,7 @@ func DecryptingReader(key string, r io.Reader) (*cipher.StreamReader, error) {
 		return nil, err
 	}
 
-	stream := cipher.NewOFB(block, iv)
+	stream := cipher.NewCTR(block, iv)
 	return &cipher.StreamReader{S: stream, R: r}, nil
 }
 

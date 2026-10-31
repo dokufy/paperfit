@@ -26,7 +26,7 @@ type VariableSustitutionTestSuite struct {
 }
 
 func (s *VariableSustitutionTestSuite) SetupSuite() {
-	os.Setenv("CACHE_URL", "")
+	_ = os.Setenv("CACHE_URL", "")
 
 	config.Load()
 	mocks.PassPDFgenerator()
@@ -37,7 +37,7 @@ func (s *VariableSustitutionTestSuite) SetupSuite() {
 		s.T().Fatal(err)
 	}
 
-	go server.Start(config.AppConfig.ServerPort)
+	go func() { _ = server.Start(config.AppConfig.ServerPort) }()
 	test.WaitForServer(s.T())
 
 	s.ctx = context.Background()
@@ -194,6 +194,5 @@ func (s *VariableSustitutionTestSuite) Test_Substitute_Array_Object__Succeeds() 
 }
 
 func TestVariableSubstitution(t *testing.T) {
-
 	suite.Run(t, new(VariableSustitutionTestSuite))
 }

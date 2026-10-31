@@ -64,16 +64,12 @@ func MockFileDownload(endpointInfo MockEnpointInfo) {
 	switch endpointInfo.ID {
 	case ArchiveMockEndpoint.ID:
 		ExplicitMockFileDownload(ArchiveMockEndpoint.Path, "archive/valid/simple.tar.gz")
-		break
 	case ArchiveWithJsonSchemaMockEndpoint.ID:
 		ExplicitMockFileDownload(ArchiveWithJsonSchemaMockEndpoint.Path, "archive/valid/with_json_schema.tar.gz")
-		break
 	case ArchiveWithEmptyJsonSchemaMockEndpoint.ID:
 		ExplicitMockFileDownload(ArchiveWithEmptyJsonSchemaMockEndpoint.Path, "archive/valid/with_empty_json_schema.tar.gz")
-		break
 	case ArchiveWithoutHtmlMockEndpoint.ID:
 		ExplicitMockFileDownload(ArchiveWithoutHtmlMockEndpoint.Path, "archive/invalid/no-html.tar.gz")
-		break
 	case ArchiveNotExistingMockEndpoint.ID:
 		MockNotExistingFile(ArchiveNotExistingMockEndpoint.Path)
 	default:

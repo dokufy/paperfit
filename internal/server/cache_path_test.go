@@ -40,15 +40,15 @@ func (s *CachePathTestSuite) SetupSuite() {
 	mocks.PassPDFgenerator()
 	mocks.PassPath("/pdf/from/archive/url")
 
-	os.Setenv("CACHE_DEFAULT_PDF_PATH", s.defaultPDFpath)
-	os.Setenv("CACHE_DEFAULT_ARCHIVE_PATH", s.defaultArchivePath)
+	_ = os.Setenv("CACHE_DEFAULT_PDF_PATH", s.defaultPDFpath)
+	_ = os.Setenv("CACHE_DEFAULT_ARCHIVE_PATH", s.defaultArchivePath)
 
 	server, err := server.New()
 	if err != nil {
 		s.T().Fatal(err)
 	}
 
-	go server.Start(config.AppConfig.ServerPort)
+	go func() { _ = server.Start(config.AppConfig.ServerPort) }()
 	test.WaitForServer(s.T())
 
 	cacheInstance, err := cache.New(config.AppConfig.CacheConfig.CacheUrl)
@@ -65,8 +65,8 @@ func (s *CachePathTestSuite) SetupSuite() {
 func (s *CachePathTestSuite) TearDownSuite() {
 	s.server.Stop()
 
-	os.Unsetenv("CACHE_DEFAULT_PDF_PATH")
-	os.Unsetenv("CACHE_DEFAULT_ARCHIVE_PATH")
+	_ = os.Unsetenv("CACHE_DEFAULT_PDF_PATH")
+	_ = os.Unsetenv("CACHE_DEFAULT_ARCHIVE_PATH")
 }
 
 func (s *CachePathTestSuite) Test_Default_Cache_Paths() {
@@ -101,8 +101,8 @@ func (s *CachePathTestSuite) Test_Default_Cache_Paths() {
 
 	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.Delete(s.ctx, cacheKey, s.defaultPDFpath)
-	s.cacheInstance.Delete(s.ctx, cacheKey, s.defaultArchivePath)
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey, s.defaultPDFpath)
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey, s.defaultArchivePath)
 }
 
 func (s *CachePathTestSuite) Test_Specified_Cache_Path() {
@@ -140,11 +140,10 @@ func (s *CachePathTestSuite) Test_Specified_Cache_Path() {
 
 	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.Delete(s.ctx, cacheKey, rootPath)
-	s.cacheInstance.Delete(s.ctx, cacheKey, s.defaultArchivePath)
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey, rootPath)
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey, s.defaultArchivePath)
 }
 
 func TestCachePath(t *testing.T) {
-
 	suite.Run(t, new(CachePathTestSuite))
 }

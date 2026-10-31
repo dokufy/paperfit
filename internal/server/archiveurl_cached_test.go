@@ -41,7 +41,7 @@ func (s *ArchiveUrlCachedTestSuite) SetupSuite() {
 		s.T().Fatal(err)
 	}
 
-	go server.Start(config.AppConfig.ServerPort)
+	go func() { _ = server.Start(config.AppConfig.ServerPort) }()
 	test.WaitForServer(s.T())
 
 	cacheInstance, err := cache.New(config.AppConfig.CacheConfig.CacheUrl)
@@ -84,7 +84,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_200() {
 
 	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_With_Variables_200() {
@@ -118,7 +118,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_With_Variables_200() {
 
 	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_With_Validation_And_Variables_200() {
@@ -153,7 +153,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_With_Validation_And_Va
 
 	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Use_Cache_200() {
@@ -218,8 +218,8 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Use_Cache_200() {
 
 	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
-	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Different_Headers_200() {
@@ -244,7 +244,7 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Different_Headers_200(
 
 	s.assert.Equal(http.StatusOK, resp.StatusCode)
 
-	cacheKey1, err := cache.Key(mocks.ArchiveMockEndpoint.Url, httptool.FlattenHeaders(&additionalHeaders))
+	cacheKey1, _ := cache.Key(mocks.ArchiveMockEndpoint.Url, httptool.FlattenHeaders(&additionalHeaders))
 
 	reader, err := s.cacheInstance.Get(s.ctx, cacheKey1, "pdf")
 	if err != nil {
@@ -281,8 +281,8 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Different_Headers_200(
 
 	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.Delete(s.ctx, cacheKey1, "pdf")
-	s.cacheInstance.Delete(s.ctx, cacheKey2, "pdf")
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey1, "pdf")
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey2, "pdf")
 }
 
 func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Different_Variables_200() {
@@ -344,8 +344,8 @@ func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_Different_Variables_20
 
 	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.Delete(s.ctx, cacheKey1, "pdf")
-	s.cacheInstance.Delete(s.ctx, cacheKey2, "pdf")
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey1, "pdf")
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey2, "pdf")
 }
 
 func (s *ArchiveUrlCachedTestSuite) Test_Fail_Generate_No_Url_400() {
@@ -501,6 +501,5 @@ func (s *ArchiveUrlCachedTestSuite) Test_Fail_Generate_Variables_Validation_Fail
 }
 
 func TestArchiveUrlCached(t *testing.T) {
-
 	suite.Run(t, new(ArchiveUrlCachedTestSuite))
 }

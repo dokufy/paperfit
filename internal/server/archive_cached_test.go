@@ -40,7 +40,7 @@ func (s *ArchiveCachedTestSuite) SetupSuite() {
 		s.T().Fatal(err)
 	}
 
-	go server.Start(config.AppConfig.ServerPort)
+	go func() { _ = server.Start(config.AppConfig.ServerPort) }()
 	test.WaitForServer(s.T())
 
 	cacheInstance, err := cache.New(config.AppConfig.CacheConfig.CacheUrl)
@@ -82,7 +82,7 @@ func (s *ArchiveCachedTestSuite) Test_Success_Generate_200() {
 
 	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveCachedTestSuite) Test_Success_Generate_With_Variables_200() {
@@ -115,7 +115,7 @@ func (s *ArchiveCachedTestSuite) Test_Success_Generate_With_Variables_200() {
 
 	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveCachedTestSuite) Test_Success_Generate_With_Validation_And_Variables_200() {
@@ -143,7 +143,7 @@ func (s *ArchiveCachedTestSuite) Test_Success_Generate_With_Validation_And_Varia
 
 	cacheKey, _ := cache.Key(file.Name(), string(json))
 
-	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveCachedTestSuite) Test_Success_Generate_With_Variables_Empty_Schema_200() {
@@ -171,7 +171,7 @@ func (s *ArchiveCachedTestSuite) Test_Success_Generate_With_Variables_Empty_Sche
 
 	cacheKey, _ := cache.Key(file.Name(), string(json))
 
-	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveCachedTestSuite) Test_Success_Generate_Use_Cache_200() {
@@ -234,7 +234,7 @@ func (s *ArchiveCachedTestSuite) Test_Success_Generate_Use_Cache_200() {
 
 	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey, "pdf")
 }
 
 func (s *ArchiveCachedTestSuite) Test_Success_Generate_Different_Variables_200() {
@@ -298,8 +298,8 @@ func (s *ArchiveCachedTestSuite) Test_Success_Generate_Different_Variables_200()
 
 	test.AssertReaderNotEmpty(s.Assertions, reader)
 
-	s.cacheInstance.Delete(s.ctx, cacheKey1, "pdf")
-	s.cacheInstance.Delete(s.ctx, cacheKey2, "pdf")
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey1, "pdf")
+	_ = s.cacheInstance.Delete(s.ctx, cacheKey2, "pdf")
 }
 
 func (s *ArchiveCachedTestSuite) Test_Fail_Generate_No_Archive_400() {
@@ -439,6 +439,5 @@ func (s *ArchiveCachedTestSuite) Test_Fail_Generate_Variables_Validation_Fails_4
 }
 
 func TestArchiveCached(t *testing.T) {
-
 	suite.Run(t, new(ArchiveCachedTestSuite))
 }

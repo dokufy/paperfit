@@ -1,14 +1,10 @@
 version: "3"
 
+dotenv: ['.env']
+
 env:
-  BASE_PATH: 
+  BASE_PATH:
     sh: pwd
-  SERVER_PORT: '{{ env "SERVER_PORT" | default "4000" }}'
-
-  PDF_GENERATOR_ENDPOINT: '{{ env "PDF_GENERATOR_ENDPOINT" | default "http://localhost:5000/forms/chromium/convert/html" }}'
-
-  CACHE_URL: '{{ env "CACHE_URL" | default "minio://testing?credential=hmac:2V0dOJk8sgV1aGVv6OoU:c2XmdF64zwF5e5JKSU9CJXFujxRI3y3mVHjpI4lJ&endpoint=http:localhost:9000" }}'
-  CACHE_ENCRYPTION_KEY: '{{ env "CACHE_ENCRYPTION_KEY" }}'
 
 includes:
   api:
@@ -17,29 +13,28 @@ includes:
 
 tasks:
   install:
-    desc: install global (binary) dependencies
+    desc: install all dependencies
     cmds:
       - go install github.com/air-verse/air@latest
       - go install mvdan.cc/gofumpt@latest
       - go install github.com/daixiang0/gci@latest
       - go install golang.org/x/tools/cmd/goimports@latest
       - go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
-
-  setup:
-    desc: run setup (copy .env.dist file, get deps)
-    cmds:
-      - cp --update=none .env.dist .env
+      - go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
       - go mod download
-
-  docker:
-    desc: run dependant services via Docker
-    cmds:
-      - docker-compose up
-      - defer: docker-compose stop
+      - task: api:setup
+      - '[ -f .env ] || cp .env.dist .env'
 
   gen:
+    desc: generate API code from schema
     cmds:
       - task: api:gen
+
+  docker:
+    desc: run dependent services via Docker
+    cmds:
+      - docker compose up
+      - defer: docker compose stop
 
   dev:
     desc: run dev server in watch mode
@@ -47,36 +42,36 @@ tasks:
       - air
 
   bench:
-    desc: runs benchmarks
+    desc: run benchmarks
     vars:
       PATH: '{{ .CLI_ARGS | default "./cmd/bench" }}'
     cmds:
       - go test {{ .PATH }} -bench=. -run=xxx -benchmem
 
   format:
-    desc: runs all code quality tools
+    desc: format code
     cmds:
       - gofumpt -l -w .
       - gci write --skip-generated -s standard -s default .
       - goimports -w -l .
 
   lint:
-    desc: runs tests
+    desc: run linter
     cmds:
       - golangci-lint run
 
   test:
-    desc: runs tests
+    desc: run tests
     vars:
       PATH: '{{ .CLI_ARGS | default "./..." }}'
     cmds:
       - go test {{ .PATH }}
 
   test:all:
-    desc: runs tests
+    desc: run linter and tests
     cmds:
-      - task test:lint
-      - task test
+      - task: lint
+      - task: test
 
   build:
     desc: build server
