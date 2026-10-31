@@ -10,7 +10,7 @@ import (
 	"github.com/dokufy/paperfit/internal/server"
 	"github.com/dokufy/paperfit/test"
 	"github.com/dokufy/paperfit/test/mocks"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -39,6 +39,7 @@ func (s *ArchiveUrlNonCachedTestSuite) SetupSuite() {
 	}
 
 	go server.Start(config.AppConfig.ServerPort)
+	test.WaitForServer(s.T())
 
 	s.ctx = context.Background()
 	s.server = server
@@ -234,7 +235,6 @@ func (s *ArchiveUrlNonCachedTestSuite) Test_Fail_Generate_Bad_Variables_400() {
 }
 
 func TestArchiveUrlNonCached(t *testing.T) {
-	t.Parallel()
 
 	suite.Run(t, new(ArchiveUrlNonCachedTestSuite))
 }

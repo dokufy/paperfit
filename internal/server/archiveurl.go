@@ -12,7 +12,7 @@ import (
 	"github.com/dokufy/paperfit/internal/service"
 	"github.com/dokufy/paperfit/internal/service/projectprovider"
 	"github.com/dokufy/paperfit/internal/validation"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 var (
@@ -21,7 +21,7 @@ var (
 	ErrFailedFetchingArchive = errors.New("error while fetching the archive at the specified url")
 )
 
-func (s *Server) CreateDocumentFromArchiveUrl(c echo.Context) error {
+func (s *Server) CreateDocumentFromArchiveUrl(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	var in apigen.DocumentArchiveUrlInput
@@ -78,6 +78,8 @@ func (s *Server) CreateDocumentFromArchiveUrl(c echo.Context) error {
 			if err != nil {
 				return sendError(c, http.StatusInternalServerError, ErrFailedWritingResponse.Error(), err)
 			}
+
+			return nil
 		}
 	}
 

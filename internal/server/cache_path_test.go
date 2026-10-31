@@ -11,7 +11,7 @@ import (
 	"github.com/dokufy/paperfit/internal/server"
 	"github.com/dokufy/paperfit/test"
 	"github.com/dokufy/paperfit/test/mocks"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -31,6 +31,7 @@ var cachePathTestHeader = map[string]string{
 }
 
 func (s *CachePathTestSuite) SetupSuite() {
+	test.UseCacheURL()
 	config.Load()
 
 	s.defaultPDFpath = "/my-customers/pdf/"
@@ -48,6 +49,7 @@ func (s *CachePathTestSuite) SetupSuite() {
 	}
 
 	go server.Start(config.AppConfig.ServerPort)
+	test.WaitForServer(s.T())
 
 	cacheInstance, err := cache.New(config.AppConfig.CacheConfig.CacheUrl)
 	if err != nil {
@@ -58,6 +60,13 @@ func (s *CachePathTestSuite) SetupSuite() {
 	s.server = server
 	s.cacheInstance = cacheInstance
 	s.assert = assert.New(s.T())
+}
+
+func (s *CachePathTestSuite) TearDownSuite() {
+	s.server.Stop()
+
+	os.Unsetenv("CACHE_DEFAULT_PDF_PATH")
+	os.Unsetenv("CACHE_DEFAULT_ARCHIVE_PATH")
 }
 
 func (s *CachePathTestSuite) Test_Default_Cache_Paths() {
@@ -136,7 +145,6 @@ func (s *CachePathTestSuite) Test_Specified_Cache_Path() {
 }
 
 func TestCachePath(t *testing.T) {
-	t.Parallel()
 
 	suite.Run(t, new(CachePathTestSuite))
 }

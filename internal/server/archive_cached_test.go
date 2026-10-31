@@ -28,6 +28,7 @@ type ArchiveCachedTestSuite struct {
 }
 
 func (s *ArchiveCachedTestSuite) SetupSuite() {
+	test.UseCacheURL()
 	config.Load()
 
 	logger.Initialize()
@@ -40,6 +41,7 @@ func (s *ArchiveCachedTestSuite) SetupSuite() {
 	}
 
 	go server.Start(config.AppConfig.ServerPort)
+	test.WaitForServer(s.T())
 
 	cacheInstance, err := cache.New(config.AppConfig.CacheConfig.CacheUrl)
 	if err != nil {
@@ -437,7 +439,6 @@ func (s *ArchiveCachedTestSuite) Test_Fail_Generate_Variables_Validation_Fails_4
 }
 
 func TestArchiveCached(t *testing.T) {
-	t.Parallel()
 
 	suite.Run(t, new(ArchiveCachedTestSuite))
 }

@@ -1,8 +1,13 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
+	"os"
+	"os/signal"
 	"strconv"
+	"sync/atomic"
+	"syscall"
 
 	"github.com/dokufy/paperfit/config"
 	"github.com/dokufy/paperfit/internal/apigen"
@@ -11,11 +16,8 @@ import (
 	"github.com/dokufy/paperfit/internal/service/pdfgenerator"
 	"github.com/dokufy/paperfit/internal/service/projectprovider"
 	"github.com/getkin/kin-openapi/openapi3filter"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-
-	// oapiMiddleware "github.com/oapi-codegen/echo-middleware"
-	"golang.org/x/time/rate"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 )
 
 type Server struct {
@@ -24,6 +26,10 @@ type Server struct {
 	pdfService             *pdfgenerator.GotembergGenerator
 	echoInstance           *echo.Echo
 	logger                 logger.Logger
+	ctx                    context.Context
+	cancel                 context.CancelFunc
+	done                   chan struct{}
+	started                atomic.Bool
 }
 
 func New() (*Server, error) {
@@ -31,7 +37,6 @@ func New() (*Server, error) {
 	logger.Initialize()
 
 	e := echo.New()
-	e.HideBanner = true
 
 	var c *cache.Cache
 	if config.AppConfig.CacheConfig != nil {
@@ -70,9 +75,12 @@ func New() (*Server, error) {
 		logger:                 logger.Log,
 	}
 
-	swaggerSpec, err := apigen.GetSwagger()
+	server.ctx, server.cancel = context.WithCancel(context.Background())
+	server.done = make(chan struct{})
+
+	swaggerSpec, err := apigen.GetSpec()
 	if err != nil {
-		e.Logger.Error("Failed to get swagger spec", err)
+		logger.Log.Error("Failed to get swagger spec", err)
 		panic("failed to get swagger spec")
 	}
 	swaggerSpec.Servers = nil
@@ -85,26 +93,18 @@ func New() (*Server, error) {
 		LogStatus:    true,
 		LogLatency:   true,
 		LogRequestID: true,
-		LogError:     true,
 		LogMethod:    true,
-		LogValuesFunc: func(_ echo.Context, v middleware.RequestLoggerValues) error {
+		LogValuesFunc: func(_ *echo.Context, v middleware.RequestLoggerValues) error {
 			server.logger.Info("Request", "method", v.Method, "uri", v.URI, "status", v.Status,
 				"id", v.RequestID, "error", v.Error, "latency", v.Latency)
 			return nil
 		},
 	}))
 	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(
-		rate.Limit(config.AppConfig.MaxRequestsPerSecond),
+		config.AppConfig.MaxRequestsPerSecond,
 	)))
 	e.Use(middleware.RequestID())
 	openapi3filter.RegisterBodyDecoder("multipart/form-data", openapi3filter.FileBodyDecoder)
-
-	// TODO: FIgure out if this can be used
-	// e.Use(oapiMiddleware.OapiRequestValidatorWithOptions(swaggerSpec, &oapiMiddleware.Options{
-	// 	Options: openapi3filter.Options{
-	// 		AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
-	// 	},
-	// }))
 
 	apigen.RegisterHandlers(e, server)
 
@@ -114,21 +114,29 @@ func New() (*Server, error) {
 }
 
 func (s *Server) Start(port string) error {
-	err := s.echoInstance.Start(":" + port)
-	if err != nil {
-		return err
+	s.started.Store(true)
+	defer close(s.done)
+
+	ctx, stop := signal.NotifyContext(s.ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	startConfig := echo.StartConfig{
+		Address:    ":" + port,
+		HideBanner: true,
 	}
 
-	return nil
+	return startConfig.Start(ctx, s.echoInstance)
 }
 
 func (s *Server) Stop() {
 	s.logger.Info("Stopping API server gracefully...")
-	err := s.echoInstance.Close()
-	if err != nil {
-		s.logger.Error("failed to stop API server", err)
-		panic("failed to stop API server")
+
+	s.cancel()
+
+	if s.started.Load() {
+		<-s.done
 	}
+
 	s.logger.Info("Stopped API server")
 }
 

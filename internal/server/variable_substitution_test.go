@@ -38,6 +38,7 @@ func (s *VariableSustitutionTestSuite) SetupSuite() {
 	}
 
 	go server.Start(config.AppConfig.ServerPort)
+	test.WaitForServer(s.T())
 
 	s.ctx = context.Background()
 	s.server = server
@@ -193,7 +194,6 @@ func (s *VariableSustitutionTestSuite) Test_Substitute_Array_Object__Succeeds() 
 }
 
 func TestVariableSubstitution(t *testing.T) {
-	t.Parallel()
 
 	suite.Run(t, new(VariableSustitutionTestSuite))
 }

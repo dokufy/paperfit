@@ -12,7 +12,7 @@ import (
 	"github.com/dokufy/paperfit/internal/server"
 	"github.com/dokufy/paperfit/test"
 	"github.com/dokufy/paperfit/test/mocks"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -30,6 +30,7 @@ var archiveUrlCachedTestHeader = map[string]string{
 }
 
 func (s *ArchiveUrlCachedTestSuite) SetupSuite() {
+	test.UseCacheURL()
 	config.Load()
 
 	mocks.PassPDFgenerator()
@@ -41,6 +42,7 @@ func (s *ArchiveUrlCachedTestSuite) SetupSuite() {
 	}
 
 	go server.Start(config.AppConfig.ServerPort)
+	test.WaitForServer(s.T())
 
 	cacheInstance, err := cache.New(config.AppConfig.CacheConfig.CacheUrl)
 	if err != nil {
@@ -51,6 +53,10 @@ func (s *ArchiveUrlCachedTestSuite) SetupSuite() {
 	s.server = server
 	s.cacheInstance = cacheInstance
 	s.assert = assert.New(s.T())
+}
+
+func (s *ArchiveUrlCachedTestSuite) TearDownSuite() {
+	s.server.Stop()
 }
 
 func (s *ArchiveUrlCachedTestSuite) Test_Success_Generate_200() {
@@ -495,7 +501,6 @@ func (s *ArchiveUrlCachedTestSuite) Test_Fail_Generate_Variables_Validation_Fail
 }
 
 func TestArchiveUrlCached(t *testing.T) {
-	t.Parallel()
 
 	suite.Run(t, new(ArchiveUrlCachedTestSuite))
 }

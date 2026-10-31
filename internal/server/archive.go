@@ -14,12 +14,12 @@ import (
 	"github.com/dokufy/paperfit/internal/cache"
 	"github.com/dokufy/paperfit/internal/service"
 	"github.com/dokufy/paperfit/internal/validation"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 var ErrMissingArchive = errors.New("archive is missing")
 
-func (s *Server) CreateDocumentFromArchive(c echo.Context) error {
+func (s *Server) CreateDocumentFromArchive(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	file, err := c.FormFile("file")

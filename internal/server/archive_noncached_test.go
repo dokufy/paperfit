@@ -36,6 +36,7 @@ func (s *ArchiveNonCachedTestSuite) SetupSuite() {
 	}
 
 	go server.Start(config.AppConfig.ServerPort)
+	test.WaitForServer(s.T())
 
 	s.ctx = context.Background()
 	s.server = server
@@ -235,7 +236,6 @@ func (s *ArchiveNonCachedTestSuite) Test_Fail_Generate_Variables_Validation_Fail
 }
 
 func TestArchiveNonCached(t *testing.T) {
-	t.Parallel()
 
 	suite.Run(t, new(ArchiveNonCachedTestSuite))
 }

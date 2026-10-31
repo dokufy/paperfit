@@ -8,7 +8,7 @@ import (
 	"github.com/dokufy/paperfit/internal/apigen"
 	"github.com/dokufy/paperfit/internal/service"
 	"github.com/dokufy/paperfit/internal/validation"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 var (
@@ -16,7 +16,7 @@ var (
 	ErrFailedToReadFile = errors.New("failed to read file")
 )
 
-func (s *Server) CreateDocumentFromFile(c echo.Context) error {
+func (s *Server) CreateDocumentFromFile(c *echo.Context) error {
 	form, err := c.MultipartForm()
 	if err != nil {
 		return sendError(c, http.StatusBadRequest, ErrInvalidInputFormat.Error(), err)

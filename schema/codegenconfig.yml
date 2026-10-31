@@ -1,7 +1,7 @@
 # yaml-language-server: ...
 package: apigen
 generate:
-  echo-server: true
+  echo5-server: true
   models: true
   embedded-spec: true
 output: ../internal/apigen/echo.apigen.go

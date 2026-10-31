@@ -6,7 +6,7 @@ require (
 	github.com/eko/gocache/lib/v4 v4.4.0
 	github.com/getkin/kin-openapi v0.152.0
 	github.com/h2non/gock v1.2.0
-	github.com/labstack/echo/v4 v4.16.3
+	github.com/labstack/echo/v5 v5.4.4
 	github.com/mholt/archiver/v4 v4.0.0-alpha.9
 	github.com/oapi-codegen/runtime v1.8.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
@@ -14,7 +14,6 @@ require (
 	go.beyondstorage.io/services/minio v0.3.0
 	go.beyondstorage.io/services/s3/v3 v3.0.1
 	golang.org/x/net v0.62.0
-	golang.org/x/time v0.16.0
 )
 
 require (
@@ -55,10 +54,7 @@ require (
 	github.com/kevinburke/go-bindata v3.22.0+incompatible // indirect
 	github.com/klauspost/cpuid v1.3.1 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
-	github.com/labstack/gommon v0.5.0 // indirect
 	github.com/levigross/exp-html v0.0.0-20120902181939-8df60c69a8f5 // indirect
-	github.com/mattn/go-colorable v0.1.15 // indirect
-	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/minio/md5-simd v1.1.0 // indirect
 	github.com/minio/minio-go/v7 v7.0.15 // indirect
@@ -84,8 +80,6 @@ require (
 	github.com/sorairolake/lzip-go v0.3.5 // indirect
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/urfave/cli/v2 v2.3.0 // indirect
-	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasttemplate v1.2.2 // indirect
 	go.beyondstorage.io/credential v1.0.0 // indirect
 	go.beyondstorage.io/endpoint v1.2.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
@@ -93,6 +87,7 @@ require (
 	golang.org/x/exp v0.0.0-20251209150349-8475f28825e9 // indirect
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
+	golang.org/x/time v0.16.0 // indirect
 	golang.org/x/tools v0.51.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect

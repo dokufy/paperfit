@@ -33,6 +33,7 @@ func (s *FileTestSuite) SetupSuite() {
 	}
 
 	go server.Start(config.AppConfig.ServerPort)
+	test.WaitForServer(s.T())
 
 	s.server = server
 	s.assert = assert.New(s.T())
@@ -192,7 +193,6 @@ func (s *FileTestSuite) Test_Fail_Generate_Variables_Validation_Fails_400() {
 }
 
 func TestSuccessfulGeneration(t *testing.T) {
-	t.Parallel()
 
 	suite.Run(t, new(FileTestSuite))
 }

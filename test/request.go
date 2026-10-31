@@ -4,15 +4,49 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"net"
 	"net/http"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/dokufy/paperfit/config"
 	"github.com/dokufy/paperfit/internal/logger"
 )
 
+// initialCacheURL is the CACHE_URL the test run started with. Suites that
+// exercise the cache use UseCacheURL to restore it after another suite has
+// disabled the cache.
+var initialCacheURL = os.Getenv("CACHE_URL")
+
+func UseCacheURL() {
+	os.Setenv("CACHE_URL", initialCacheURL)
+}
+
 func FullURL(path string) string {
 	return "http://localhost:" + config.AppConfig.ServerPort + path
+}
+
+// WaitForServer blocks until the server accepts TCP connections on the
+// configured port or fails the test after a timeout.
+func WaitForServer(tb testing.TB) {
+	tb.Helper()
+
+	address := "localhost:" + config.AppConfig.ServerPort
+	deadline := time.Now().Add(10 * time.Second)
+
+	for time.Now().Before(deadline) {
+		conn, err := net.DialTimeout("tcp", address, 100*time.Millisecond)
+		if err == nil {
+			conn.Close()
+
+			return
+		}
+
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	tb.Fatalf("server at %s did not become ready", address)
 }
 
 func Post(url string, headers map[string]string, body io.Reader) *http.Response {
@@ -28,9 +62,9 @@ func Post(url string, headers map[string]string, body io.Reader) *http.Response 
 	}
 
 	client := &http.Client{}
-	res, error := client.Do(req)
-	if error != nil {
-		logger.Log.Error("Error while sending the request", error)
+	res, err := client.Do(req)
+	if err != nil {
+		logger.Log.Error("Error while sending the request", err)
 
 		panic(err)
 	}
